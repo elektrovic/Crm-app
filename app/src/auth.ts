@@ -9,13 +9,18 @@
  * Merk at det ikke er nok å ha en Entra-konto: den ansatte må også finnes
  * som aktiv rad i `ansatte`-tabellen. Da bestemmer ledelsen hvem som får
  * bruke appen, ikke Entra-katalogen alene.
+ *
+ * I demomodus finnes det i tillegg en dør uten passord. Se lib/demo.ts for
+ * hvorfor den finnes og hva som holder den lukket.
  */
 import NextAuth, { type DefaultSession } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { authConfig } from "./auth.config";
 import { db } from "./db";
 import { ansatte, type Avdeling, type Rolle } from "./db/schema";
+import { DEMO_INNLOGGING } from "./lib/demo";
 
 /** Feltene Montørappen legger på den innloggede brukeren. */
 export type Brukerprofil = {
@@ -39,6 +44,38 @@ declare module "next-auth" {
   }
 }
 
+/**
+ * Demodøra. Finnes bare når DEMO_INNLOGGING er «1», og slipper bare inn
+ * ansatte som allerede ligger aktive i databasen.
+ */
+const demoProvider = Credentials({
+  id: "demo",
+  name: "Demo",
+  credentials: { epost: { label: "E-post", type: "text" } },
+  async authorize(data) {
+    const epost = typeof data?.epost === "string" ? data.epost : "";
+    if (!epost) return null;
+
+    const rad = await db.query.ansatte.findFirst({
+      where: and(eq(ansatte.epost, epost), eq(ansatte.aktiv, true)),
+    });
+    if (!rad) return null;
+
+    return {
+      id: rad.id,
+      navn: rad.navn,
+      epost: rad.epost,
+      rolle: rad.rolle,
+      avdeling: rad.avdeling,
+      tenantId: rad.tenantId,
+      initialer: rad.initialer,
+      farge: rad.farge,
+      tripletexEmployeeId: rad.tripletexEmployeeId,
+      abaxVehicleId: rad.abaxVehicleId,
+    };
+  },
+});
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
@@ -47,6 +84,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
       issuer: process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER,
     }),
+    ...(DEMO_INNLOGGING ? [demoProvider] : []),
   ],
   callbacks: {
     ...authConfig.callbacks,
@@ -55,7 +93,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * Slipper bare inn ansatte som er lagt inn og aktive. Alt annet avvises,
      * også gyldige Entra-kontoer.
      */
-    async signIn({ profile }) {
+    async signIn({ account, profile }) {
+      // Demoprovideren har alt slått opp i databasen i authorize, og
+      // returnerte null hvis den ansatte ikke fantes eller var sperret.
+      if (account?.provider === "demo") return DEMO_INNLOGGING;
+
       const oid = lesOid(profile);
       if (!oid) return false;
 
@@ -71,7 +113,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * Rolle og avdeling hentes fra databasen ved innlogging og legges i
      * tokenet, slik at hver forespørsel etterpå slipper et databaseoppslag.
      */
-    async jwt({ token, profile }) {
+    async jwt({ token, user, profile }) {
+      // Demoinnlogging: profilen kom fra authorize, ikke fra Entra.
+      if (user && "rolle" in user) {
+        const p = user as unknown as Brukerprofil;
+        return { ...token, ...tilToken(p) };
+      }
+
       const oid = lesOid(profile);
       if (!oid) return token;
 
@@ -80,17 +128,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       });
       if (!rad) return token;
 
-      token.ansattId = rad.id;
-      token.navn = rad.navn;
-      token.epost = rad.epost;
-      token.rolle = rad.rolle;
-      token.avdeling = rad.avdeling;
-      token.tenantId = rad.tenantId;
-      token.initialer = rad.initialer;
-      token.farge = rad.farge;
-      token.tripletexEmployeeId = rad.tripletexEmployeeId;
-      token.abaxVehicleId = rad.abaxVehicleId;
-      return token;
+      return { ...token, ...tilToken({ ...rad, id: rad.id }) };
     },
 
     async session({ session, token }) {
@@ -111,6 +149,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+/** Feltene vi bærer i tokenet, så de settes likt uansett hvilken vei man kom inn. */
+function tilToken(p: Brukerprofil) {
+  return {
+    ansattId: p.id,
+    navn: p.navn,
+    epost: p.epost,
+    rolle: p.rolle,
+    avdeling: p.avdeling,
+    tenantId: p.tenantId,
+    initialer: p.initialer,
+    farge: p.farge,
+    tripletexEmployeeId: p.tripletexEmployeeId,
+    abaxVehicleId: p.abaxVehicleId,
+  };
+}
 
 /** Entra legger objekt-ID-en i `oid`. Den er stabil, i motsetning til e-post. */
 function lesOid(profile: unknown): string | null {

@@ -22,10 +22,13 @@ export function Sidemeny({
   navn,
   rolle,
   initialer,
+  farge,
 }: {
   navn: string;
   rolle: Rolle;
   initialer: string;
+  /** Fargekoden til den ansatte, den samme de har ellers i systemet. */
+  farge: string;
 }) {
   const sti = usePathname();
   const [apen, setApen] = useState(false);
@@ -131,7 +134,7 @@ export function Sidemeny({
               textAlign: "left",
             }}
           >
-            <IkonFlis farge="var(--bla)" storrelse={28}>
+            <IkonFlis farge={farge} storrelse={28}>
               {initialer}
             </IkonFlis>
             <span style={{ flex: 1, minWidth: 0 }}>

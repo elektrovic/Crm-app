@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:seed": "tsx src/db/seed.ts",
+    "db:seed": "node --env-file-if-exists=.env --import tsx src/db/seed.ts",
     "test": "node --conditions=react-server --import tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {

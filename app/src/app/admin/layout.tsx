@@ -17,7 +17,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div style={{ display: "flex", minHeight: "100dvh", background: "var(--flate)" }}>
-      <Sidemeny navn={okt.user.navn} rolle={okt.user.rolle} initialer={okt.user.initialer} />
+      <Sidemeny
+        navn={okt.user.navn}
+        rolle={okt.user.rolle}
+        initialer={okt.user.initialer}
+        farge={okt.user.farge}
+      />
       <main
         style={{
           flex: 1,
