@@ -1,0 +1,25 @@
+# Netlify-oppsett for Montørappen.
+#
+# Appen ligger i undermappa `app/`, ikke i rota. `base` under forteller
+# Netlify det, slik at både installasjon, bygg og funksjoner finnes uten at
+# noe må settes i grensesnittet.
+#
+# MERK: når `base` er satt, tolkes ALLE andre stier i denne fila relativt
+# til den. Derfor står det `.next` og ikke `app/.next`.
+#
+# Next.js-støtten er innebygd i Netlify. Ikke installer noen plugin.
+
+[build]
+  base = "app"
+  command = "npm run build"
+  publish = ".next"
+  # Relativt til base, altså app/netlify/functions
+  functions = "netlify/functions"
+
+[build.environment]
+  # Samme versjon som utviklingsmaskinen, så et bygg ikke plutselig
+  # oppfører seg annerledes enn det som ble testet.
+  NODE_VERSION = "22"
+
+# Sikkerhetsheaderne settes i app/next.config.ts og følger med responsene
+# derfra, slik at det finnes ett sted å endre dem.

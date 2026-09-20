@@ -1,0 +1,128 @@
+/*
+ * Designsystem for Montørappen.
+ * Alle verdier er hentet ut av prototypen (Montørappen.dc.html) slik at
+ * alt som bygges senere arver det samme utseendet automatisk.
+ */
+
+:root {
+  /* Flater */
+  --flate: #edeff3;
+  --kort: #ffffff;
+  --kort-2: #f7f9fc;
+  --mork: #131c31;
+  --mork-2: #1c2942;
+
+  /* Tekst */
+  --tekst: #0f172a;
+  --tekst-2: #414b5c;
+  --dempet: #5b6472;
+  --svak: #9aa2b1;
+  --mork-dempet: #9ca9be;
+
+  /* Linjer */
+  --linje: #e7eaf0;
+  --linje-svak: #eef0f4;
+
+  /* Aksent */
+  --bla: #2563eb;
+  --bla-morkt: #1d4ed8;
+  --bla-svak: #eef3fe;
+
+  /* Statusfarger */
+  --gronn: #22c55e;
+  --gronn-bg: #e9f9f0;
+  --gronn-tekst: #0a5c34;
+  --oransje: #f97316;
+  --oransje-bg: #fff6e9;
+  --oransje-tekst: #9a5311;
+  --rod: #f43f5e;
+  --rod-bg: #fdecef;
+  --rod-tekst: #b91c34;
+  --lilla: #a855f7;
+  --indigo: #6366f1;
+
+  /* Skygger og radius */
+  --skygge: 0 1px 2px rgba(16, 24, 40, 0.04), 0 10px 28px -18px rgba(16, 24, 40, 0.25);
+  --skygge-loft: 0 1px 2px rgba(16, 24, 40, 0.05), 0 20px 44px -24px rgba(16, 24, 40, 0.4);
+  --r-kort: 16px;
+  --r-mellom: 14px;
+  --r-liten: 11px;
+
+  /* Typografi */
+  --font: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Trygg sone for bunnmeny på mobil */
+  --bunnmeny-hoyde: 68px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--flate);
+  color: var(--tekst);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
+  /* Hindrer at iOS zoomer inn når montøren trykker i et felt */
+  -webkit-text-size-adjust: 100%;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+a {
+  color: var(--bla);
+  text-decoration: none;
+}
+
+/* Skjuler scrollbar på horisontale striper, som i prototypen */
+.sc::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+.sc {
+  scrollbar-width: none;
+}
+
+@keyframes puls {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.puls {
+  animation: puls 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .puls {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Tastaturfokus skal alltid være synlig — krav for tilgjengelighet */
+:focus-visible {
+  outline: 2px solid var(--bla);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
