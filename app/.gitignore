@@ -4,4 +4,5 @@ node_modules/
 .env.local
 *.tsbuildinfo
 next-env.d.ts
-drizzle/
+# Migrasjonene SKAL sjekkes inn. De kjøres under bygging på Netlify, og
+# ligger de ikke i lageret, får serveren aldri tabellene sine.

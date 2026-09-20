@@ -1,0 +1,3588 @@
+{
+  "id": "16bf23d0-c91a-4bf3-9b83-a4e8d8a119f4",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.adkomst": {
+      "name": "adkomst",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prosjekt_id": {
+          "name": "prosjekt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nokkelkode": {
+          "name": "nokkelkode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kontaktperson": {
+          "name": "kontaktperson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kontakttelefon": {
+          "name": "kontakttelefon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parkering": {
+          "name": "parkering",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "merknad": {
+          "name": "merknad",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oppdatert_av": {
+          "name": "oppdatert_av",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oppdatert": {
+          "name": "oppdatert",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "adkomst_prosjekt_idx": {
+          "name": "adkomst_prosjekt_idx",
+          "columns": [
+            {
+              "expression": "prosjekt_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "adkomst_tenant_id_tenants_id_fk": {
+          "name": "adkomst_tenant_id_tenants_id_fk",
+          "tableFrom": "adkomst",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "adkomst_prosjekt_id_prosjekter_id_fk": {
+          "name": "adkomst_prosjekt_id_prosjekter_id_fk",
+          "tableFrom": "adkomst",
+          "tableTo": "prosjekter",
+          "columnsFrom": [
+            "prosjekt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "adkomst_oppdatert_av_ansatte_id_fk": {
+          "name": "adkomst_oppdatert_av_ansatte_id_fk",
+          "tableFrom": "adkomst",
+          "tableTo": "ansatte",
+          "columnsFrom": [
+            "oppdatert_av"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.aktiviteter": {
+      "name": "aktiviteter",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tripletex_activity_id": {
+          "name": "tripletex_activity_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "navn": {
+          "name": "navn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nummer": {
+          "name": "nummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fakturerbar": {
+          "name": "fakturerbar",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "standard_for_avdeling": {
+          "name": "standard_for_avdeling",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aktiv": {
+          "name": "aktiv",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "sist_synket": {
+          "name": "sist_synket",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "aktivitet_tenant_tripletex_idx": {
+          "name": "aktivitet_tenant_tripletex_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tripletex_activity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "aktivitet_aktiv_idx": {
+          "name": "aktivitet_aktiv_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "aktiv",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "aktiviteter_tenant_id_tenants_id_fk": {
+          "name": "aktiviteter_tenant_id_tenants_id_fk",
+          "tableFrom": "aktiviteter",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ansatte": {
+      "name": "ansatte",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entra_oid": {
+          "name": "entra_oid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "epost": {
+          "name": "epost",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "navn": {
+          "name": "navn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tripletex_employee_id": {
+          "name": "tripletex_employee_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tripletex_token_kryptert": {
+          "name": "tripletex_token_kryptert",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "abax_vehicle_id": {
+          "name": "abax_vehicle_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rolle": {
+          "name": "rolle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'montor'"
+        },
+        "avdeling": {
+          "name": "avdeling",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "farge": {
+          "name": "farge",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'#2563EB'"
+        },
+        "initialer": {
+          "name": "initialer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aktiv": {
+          "name": "aktiv",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ansatte_entra_oid_idx": {
+          "name": "ansatte_entra_oid_idx",
+          "columns": [
+            {
+              "expression": "entra_oid",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ansatte_tenant_idx": {
+          "name": "ansatte_tenant_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ansatte_tenant_id_tenants_id_fk": {
+          "name": "ansatte_tenant_id_tenants_id_fk",
+          "tableFrom": "ansatte",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.bestillinger": {
+      "name": "bestillinger",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bestillingsnummer": {
+          "name": "bestillingsnummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prosjekt_id": {
+          "name": "prosjekt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bestilt_av": {
+          "name": "bestilt_av",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grossist": {
+          "name": "grossist",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ahlsell'"
+        },
+        "kundenummer": {
+          "name": "kundenummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "leveringsadresse": {
+          "name": "leveringsadresse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "onsket_leveringsdato": {
+          "name": "onsket_leveringsdato",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "merknad": {
+          "name": "merknad",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'kladd'"
+        },
+        "grossist_ordrenummer": {
+          "name": "grossist_ordrenummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sendt": {
+          "name": "sendt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "feilmelding": {
+          "name": "feilmelding",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "bestilling_nummer_idx": {
+          "name": "bestilling_nummer_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "bestillingsnummer",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "bestilling_status_idx": {
+          "name": "bestilling_status_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "bestillinger_tenant_id_tenants_id_fk": {
+          "name": "bestillinger_tenant_id_tenants_id_fk",
+          "tableFrom": "bestillinger",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bestillinger_prosjekt_id_prosjekter_id_fk": {
+          "name": "bestillinger_prosjekt_id_prosjekter_id_fk",
+          "tableFrom": "bestillinger",
+          "tableTo": "prosjekter",
+          "columnsFrom": [
+            "prosjekt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bestillinger_bestilt_av_ansatte_id_fk": {
+          "name": "bestillinger_bestilt_av_ansatte_id_fk",
+          "tableFrom": "bestillinger",
+          "tableTo": "ansatte",
+          "columnsFrom": [
+            "bestilt_av"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.bestillingslinjer": {
+      "name": "bestillingslinjer",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bestilling_id": {
+          "name": "bestilling_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mangel_id": {
+          "name": "mangel_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "beskrivelse": {
+          "name": "beskrivelse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "efo_nummer": {
+          "name": "efo_nummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "grossist_varenummer": {
+          "name": "grossist_varenummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "antall": {
+          "name": "antall",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'1'"
+        },
+        "enhet": {
+          "name": "enhet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'STK'"
+        },
+        "sortering": {
+          "name": "sortering",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "bestillingslinje_bestilling_idx": {
+          "name": "bestillingslinje_bestilling_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "bestilling_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "bestillingslinjer_tenant_id_tenants_id_fk": {
+          "name": "bestillingslinjer_tenant_id_tenants_id_fk",
+          "tableFrom": "bestillingslinjer",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bestillingslinjer_bestilling_id_bestillinger_id_fk": {
+          "name": "bestillingslinjer_bestilling_id_bestillinger_id_fk",
+          "tableFrom": "bestillingslinjer",
+          "tableTo": "bestillinger",
+          "columnsFrom": [
+            "bestilling_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "bestillingslinjer_mangel_id_mangler_id_fk": {
+          "name": "bestillingslinjer_mangel_id_mangler_id_fk",
+          "tableFrom": "bestillingslinjer",
+          "tableTo": "mangler",
+          "columnsFrom": [
+            "mangel_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.endringslogg": {
+      "name": "endringslogg",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ansatt_id": {
+          "name": "ansatt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "handling": {
+          "name": "handling",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tabell": {
+          "name": "tabell",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rad_id": {
+          "name": "rad_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "for": {
+          "name": "for",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "etter": {
+          "name": "etter",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip_adresse": {
+          "name": "ip_adresse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tidspunkt": {
+          "name": "tidspunkt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "endringslogg_oppslag_idx": {
+          "name": "endringslogg_oppslag_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tabell",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "rad_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "endringslogg_tenant_id_tenants_id_fk": {
+          "name": "endringslogg_tenant_id_tenants_id_fk",
+          "tableFrom": "endringslogg",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "endringslogg_ansatt_id_ansatte_id_fk": {
+          "name": "endringslogg_ansatt_id_ansatte_id_fk",
+          "tableFrom": "endringslogg",
+          "tableTo": "ansatte",
+          "columnsFrom": [
+            "ansatt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.garantier": {
+      "name": "garantier",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kunde_id": {
+          "name": "kunde_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prosjekt_id": {
+          "name": "prosjekt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "utfort": {
+          "name": "utfort",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "utfort_dato": {
+          "name": "utfort_dato",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "garanti_utloper": {
+          "name": "garanti_utloper",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "anbefaling": {
+          "name": "anbefaling",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kontaktes_etter": {
+          "name": "kontaktes_etter",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kontaktet": {
+          "name": "kontaktet",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "garantier_kunde_idx": {
+          "name": "garantier_kunde_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "kunde_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "garantier_tenant_id_tenants_id_fk": {
+          "name": "garantier_tenant_id_tenants_id_fk",
+          "tableFrom": "garantier",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "garantier_kunde_id_kunder_id_fk": {
+          "name": "garantier_kunde_id_kunder_id_fk",
+          "tableFrom": "garantier",
+          "tableTo": "kunder",
+          "columnsFrom": [
+            "kunde_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "garantier_prosjekt_id_prosjekter_id_fk": {
+          "name": "garantier_prosjekt_id_prosjekter_id_fk",
+          "tableFrom": "garantier",
+          "tableTo": "prosjekter",
+          "columnsFrom": [
+            "prosjekt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.henvendelser": {
+      "name": "henvendelser",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kanal": {
+          "name": "kanal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mottatt": {
+          "name": "mottatt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "innhold": {
+          "name": "innhold",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "avsender_navn": {
+          "name": "avsender_navn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avsender_telefon": {
+          "name": "avsender_telefon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avsender_epost": {
+          "name": "avsender_epost",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kunde_id": {
+          "name": "kunde_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trinn": {
+          "name": "trinn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ny'"
+        },
+        "ansvarlig": {
+          "name": "ansvarlig",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avdeling": {
+          "name": "avdeling",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sum": {
+          "name": "sum",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ai_sammendrag": {
+          "name": "ai_sammendrag",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ai_kategori": {
+          "name": "ai_kategori",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ai_hastegrad": {
+          "name": "ai_hastegrad",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ai_vurdert": {
+          "name": "ai_vurdert",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ai_modell": {
+          "name": "ai_modell",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "henvendelser_trinn_idx": {
+          "name": "henvendelser_trinn_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "trinn",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "henvendelser_mottatt_idx": {
+          "name": "henvendelser_mottatt_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mottatt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "henvendelser_tenant_id_tenants_id_fk": {
+          "name": "henvendelser_tenant_id_tenants_id_fk",
+          "tableFrom": "henvendelser",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "henvendelser_kunde_id_kunder_id_fk": {
+          "name": "henvendelser_kunde_id_kunder_id_fk",
+          "tableFrom": "henvendelser",
+          "tableTo": "kunder",
+          "columnsFrom": [
+            "kunde_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "henvendelser_ansvarlig_ansatte_id_fk": {
+          "name": "henvendelser_ansvarlig_ansatte_id_fk",
+          "tableFrom": "henvendelser",
+          "tableTo": "ansatte",
+          "columnsFrom": [
+            "ansvarlig"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.kundehistorikk": {
+      "name": "kundehistorikk",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kunde_id": {
+          "name": "kunde_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hendelse": {
+          "name": "hendelse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dato": {
+          "name": "dato",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "farge": {
+          "name": "farge",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'#2563EB'"
+        },
+        "ansatt_id": {
+          "name": "ansatt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "kundehistorikk_kunde_idx": {
+          "name": "kundehistorikk_kunde_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "kunde_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "dato",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "kundehistorikk_tenant_id_tenants_id_fk": {
+          "name": "kundehistorikk_tenant_id_tenants_id_fk",
+          "tableFrom": "kundehistorikk",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "kundehistorikk_kunde_id_kunder_id_fk": {
+          "name": "kundehistorikk_kunde_id_kunder_id_fk",
+          "tableFrom": "kundehistorikk",
+          "tableTo": "kunder",
+          "columnsFrom": [
+            "kunde_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "kundehistorikk_ansatt_id_ansatte_id_fk": {
+          "name": "kundehistorikk_ansatt_id_ansatte_id_fk",
+          "tableFrom": "kundehistorikk",
+          "tableTo": "ansatte",
+          "columnsFrom": [
+            "ansatt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.kunder": {
+      "name": "kunder",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "navn": {
+          "name": "navn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "orgnummer": {
+          "name": "orgnummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kontaktperson": {
+          "name": "kontaktperson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "telefon": {
+          "name": "telefon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "epost": {
+          "name": "epost",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "adresse": {
+          "name": "adresse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avdeling": {
+          "name": "avdeling",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'prospekt'"
+        },
+        "tripletex_customer_id": {
+          "name": "tripletex_customer_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "omsetning": {
+          "name": "omsetning",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "omsetning_synket": {
+          "name": "omsetning_synket",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "kunder_tenant_idx": {
+          "name": "kunder_tenant_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "kunder_navn_idx": {
+          "name": "kunder_navn_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "navn",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "kunder_tenant_id_tenants_id_fk": {
+          "name": "kunder_tenant_id_tenants_id_fk",
+          "tableFrom": "kunder",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mangler": {
+      "name": "mangler",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prosjekt_id": {
+          "name": "prosjekt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tekst": {
+          "name": "tekst",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "antall": {
+          "name": "antall",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "talt_inn": {
+          "name": "talt_inn",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "efo_nummer": {
+          "name": "efo_nummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enhet": {
+          "name": "enhet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'STK'"
+        },
+        "bestilt": {
+          "name": "bestilt",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "bestilt_tidspunkt": {
+          "name": "bestilt_tidspunkt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lagt_inn_av": {
+          "name": "lagt_inn_av",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "mangler_prosjekt_idx": {
+          "name": "mangler_prosjekt_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "prosjekt_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "bestilt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "mangler_tenant_id_tenants_id_fk": {
+          "name": "mangler_tenant_id_tenants_id_fk",
+          "tableFrom": "mangler",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "mangler_prosjekt_id_prosjekter_id_fk": {
+          "name": "mangler_prosjekt_id_prosjekter_id_fk",
+          "tableFrom": "mangler",
+          "tableTo": "prosjekter",
+          "columnsFrom": [
+            "prosjekt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "mangler_lagt_inn_av_ansatte_id_fk": {
+          "name": "mangler_lagt_inn_av_ansatte_id_fk",
+          "tableFrom": "mangler",
+          "tableTo": "ansatte",
+          "columnsFrom": [
+            "lagt_inn_av"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.oppfolginger": {
+      "name": "oppfolginger",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kunde_id": {
+          "name": "kunde_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "henvendelse_id": {
+          "name": "henvendelse_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reklamasjon_id": {
+          "name": "reklamasjon_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hva": {
+          "name": "hva",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "frist": {
+          "name": "frist",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ansvarlig": {
+          "name": "ansvarlig",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fullfort": {
+          "name": "fullfort",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "fullfort_tidspunkt": {
+          "name": "fullfort_tidspunkt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "oppfolging_frist_idx": {
+          "name": "oppfolging_frist_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "fullfort",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "frist",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "oppfolging_ansvarlig_idx": {
+          "name": "oppfolging_ansvarlig_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ansvarlig",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "oppfolginger_tenant_id_tenants_id_fk": {
+          "name": "oppfolginger_tenant_id_tenants_id_fk",
+          "tableFrom": "oppfolginger",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "oppfolginger_kunde_id_kunder_id_fk": {
+          "name": "oppfolginger_kunde_id_kunder_id_fk",
+          "tableFrom": "oppfolginger",
+          "tableTo": "kunder",
+          "columnsFrom": [
+            "kunde_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "oppfolginger_henvendelse_id_henvendelser_id_fk": {
+          "name": "oppfolginger_henvendelse_id_henvendelser_id_fk",
+          "tableFrom": "oppfolginger",
+          "tableTo": "henvendelser",
+          "columnsFrom": [
+            "henvendelse_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "oppfolginger_reklamasjon_id_reklamasjoner_id_fk": {
+          "name": "oppfolginger_reklamasjon_id_reklamasjoner_id_fk",
+          "tableFrom": "oppfolginger",
+          "tableTo": "reklamasjoner",
+          "columnsFrom": [
+            "reklamasjon_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "oppfolginger_ansvarlig_ansatte_id_fk": {
+          "name": "oppfolginger_ansvarlig_ansatte_id_fk",
+          "tableFrom": "oppfolginger",
+          "tableTo": "ansatte",
+          "columnsFrom": [
+            "ansvarlig"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.prislinjer": {
+      "name": "prislinjer",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "avdeling": {
+          "name": "avdeling",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "navn": {
+          "name": "navn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enhet": {
+          "name": "enhet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pris": {
+          "name": "pris",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sortering": {
+          "name": "sortering",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "aktiv": {
+          "name": "aktiv",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "prislinjer_avdeling_idx": {
+          "name": "prislinjer_avdeling_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "avdeling",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "aktiv",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "prislinjer_tenant_id_tenants_id_fk": {
+          "name": "prislinjer_tenant_id_tenants_id_fk",
+          "tableFrom": "prislinjer",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.prosjekter": {
+      "name": "prosjekter",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tripletex_project_id": {
+          "name": "tripletex_project_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nummer": {
+          "name": "nummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "navn": {
+          "name": "navn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kunde": {
+          "name": "kunde",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "adresse": {
+          "name": "adresse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lat": {
+          "name": "lat",
+          "type": "numeric(9, 6)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lon": {
+          "name": "lon",
+          "type": "numeric(9, 6)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avdeling": {
+          "name": "avdeling",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "farge": {
+          "name": "farge",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'#2563EB'"
+        },
+        "aktiv": {
+          "name": "aktiv",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "sist_synket": {
+          "name": "sist_synket",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kunde_id": {
+          "name": "kunde_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "geokodet_forsokt": {
+          "name": "geokodet_forsokt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "prosjekt_tenant_tripletex_idx": {
+          "name": "prosjekt_tenant_tripletex_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tripletex_project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "prosjekt_nummer_idx": {
+          "name": "prosjekt_nummer_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "nummer",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "prosjekter_tenant_id_tenants_id_fk": {
+          "name": "prosjekter_tenant_id_tenants_id_fk",
+          "tableFrom": "prosjekter",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.reklamasjoner": {
+      "name": "reklamasjoner",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "saksnummer": {
+          "name": "saksnummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kunde_id": {
+          "name": "kunde_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prosjekt_id": {
+          "name": "prosjekt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mottatt": {
+          "name": "mottatt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "frist": {
+          "name": "frist",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "beskrivelse": {
+          "name": "beskrivelse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ansvarlig": {
+          "name": "ansvarlig",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ny'"
+        },
+        "kostnad": {
+          "name": "kostnad",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "losning": {
+          "name": "losning",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lukket": {
+          "name": "lukket",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "reklamasjon_saksnummer_idx": {
+          "name": "reklamasjon_saksnummer_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "saksnummer",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "reklamasjon_status_idx": {
+          "name": "reklamasjon_status_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "reklamasjoner_tenant_id_tenants_id_fk": {
+          "name": "reklamasjoner_tenant_id_tenants_id_fk",
+          "tableFrom": "reklamasjoner",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "reklamasjoner_kunde_id_kunder_id_fk": {
+          "name": "reklamasjoner_kunde_id_kunder_id_fk",
+          "tableFrom": "reklamasjoner",
+          "tableTo": "kunder",
+          "columnsFrom": [
+            "kunde_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "reklamasjoner_prosjekt_id_prosjekter_id_fk": {
+          "name": "reklamasjoner_prosjekt_id_prosjekter_id_fk",
+          "tableFrom": "reklamasjoner",
+          "tableTo": "prosjekter",
+          "columnsFrom": [
+            "prosjekt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "reklamasjoner_ansvarlig_ansatte_id_fk": {
+          "name": "reklamasjoner_ansvarlig_ansatte_id_fk",
+          "tableFrom": "reklamasjoner",
+          "tableTo": "ansatte",
+          "columnsFrom": [
+            "ansvarlig"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.skjemamaler": {
+      "name": "skjemamaler",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "avdeling": {
+          "name": "avdeling",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "navn": {
+          "name": "navn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sporsmal": {
+          "name": "sporsmal",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "beskrivelse_ledetekst": {
+          "name": "beskrivelse_ledetekst",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aktiv": {
+          "name": "aktiv",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "skjemamaler_avdeling_idx": {
+          "name": "skjemamaler_avdeling_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "avdeling",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "aktiv",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "skjemamaler_tenant_id_tenants_id_fk": {
+          "name": "skjemamaler_tenant_id_tenants_id_fk",
+          "tableFrom": "skjemamaler",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.skjemasvar": {
+      "name": "skjemasvar",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prosjekt_id": {
+          "name": "prosjekt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ansatt_id": {
+          "name": "ansatt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "skjema_navn": {
+          "name": "skjema_navn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "svar": {
+          "name": "svar",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "beskrivelse": {
+          "name": "beskrivelse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fullfort": {
+          "name": "fullfort",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "klient_nokkel": {
+          "name": "klient_nokkel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "skjemasvar_klientnokkel_idx": {
+          "name": "skjemasvar_klientnokkel_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "klient_nokkel",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "skjemasvar_prosjekt_idx": {
+          "name": "skjemasvar_prosjekt_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "prosjekt_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "skjemasvar_tenant_id_tenants_id_fk": {
+          "name": "skjemasvar_tenant_id_tenants_id_fk",
+          "tableFrom": "skjemasvar",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "skjemasvar_prosjekt_id_prosjekter_id_fk": {
+          "name": "skjemasvar_prosjekt_id_prosjekter_id_fk",
+          "tableFrom": "skjemasvar",
+          "tableTo": "prosjekter",
+          "columnsFrom": [
+            "prosjekt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "skjemasvar_ansatt_id_ansatte_id_fk": {
+          "name": "skjemasvar_ansatt_id_ansatte_id_fk",
+          "tableFrom": "skjemasvar",
+          "tableTo": "ansatte",
+          "columnsFrom": [
+            "ansatt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sms_logg": {
+      "name": "sms_logg",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prosjekt_id": {
+          "name": "prosjekt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ansatt_id": {
+          "name": "ansatt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "anledning": {
+          "name": "anledning",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mottaker": {
+          "name": "mottaker",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "melding": {
+          "name": "melding",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sendt": {
+          "name": "sendt",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "leverandor_id": {
+          "name": "leverandor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "feilmelding": {
+          "name": "feilmelding",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "klient_nokkel": {
+          "name": "klient_nokkel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "sms_klientnokkel_idx": {
+          "name": "sms_klientnokkel_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "klient_nokkel",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sms_prosjekt_idx": {
+          "name": "sms_prosjekt_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "prosjekt_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sms_logg_tenant_id_tenants_id_fk": {
+          "name": "sms_logg_tenant_id_tenants_id_fk",
+          "tableFrom": "sms_logg",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "sms_logg_prosjekt_id_prosjekter_id_fk": {
+          "name": "sms_logg_prosjekt_id_prosjekter_id_fk",
+          "tableFrom": "sms_logg",
+          "tableTo": "prosjekter",
+          "columnsFrom": [
+            "prosjekt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "sms_logg_ansatt_id_ansatte_id_fk": {
+          "name": "sms_logg_ansatt_id_ansatte_id_fk",
+          "tableFrom": "sms_logg",
+          "tableTo": "ansatte",
+          "columnsFrom": [
+            "ansatt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tenants": {
+      "name": "tenants",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "navn": {
+          "name": "navn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tildelinger": {
+      "name": "tildelinger",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prosjekt_id": {
+          "name": "prosjekt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ansatt_id": {
+          "name": "ansatt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dato": {
+          "name": "dato",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fra_kl": {
+          "name": "fra_kl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "til_kl": {
+          "name": "til_kl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notat": {
+          "name": "notat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "tildeling_ansatt_dato_idx": {
+          "name": "tildeling_ansatt_dato_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ansatt_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "dato",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tildeling_dato_idx": {
+          "name": "tildeling_dato_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "dato",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "tildelinger_tenant_id_tenants_id_fk": {
+          "name": "tildelinger_tenant_id_tenants_id_fk",
+          "tableFrom": "tildelinger",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tildelinger_prosjekt_id_prosjekter_id_fk": {
+          "name": "tildelinger_prosjekt_id_prosjekter_id_fk",
+          "tableFrom": "tildelinger",
+          "tableTo": "prosjekter",
+          "columnsFrom": [
+            "prosjekt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tildelinger_ansatt_id_ansatte_id_fk": {
+          "name": "tildelinger_ansatt_id_ansatte_id_fk",
+          "tableFrom": "tildelinger",
+          "tableTo": "ansatte",
+          "columnsFrom": [
+            "ansatt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tillegg": {
+      "name": "tillegg",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prosjekt_id": {
+          "name": "prosjekt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ansatt_id": {
+          "name": "ansatt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "navn": {
+          "name": "navn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enhet": {
+          "name": "enhet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "antall": {
+          "name": "antall",
+          "type": "numeric(8, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'1'"
+        },
+        "enhetspris": {
+          "name": "enhetspris",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kommentar": {
+          "name": "kommentar",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bilde_id": {
+          "name": "bilde_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "signatur_id": {
+          "name": "signatur_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "signert_av": {
+          "name": "signert_av",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "signert_tidspunkt": {
+          "name": "signert_tidspunkt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'i_ko'"
+        },
+        "tripletex_underprosjekt_id": {
+          "name": "tripletex_underprosjekt_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "feilmelding": {
+          "name": "feilmelding",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "klient_nokkel": {
+          "name": "klient_nokkel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "tillegg_klientnokkel_idx": {
+          "name": "tillegg_klientnokkel_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "klient_nokkel",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tillegg_prosjekt_idx": {
+          "name": "tillegg_prosjekt_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "prosjekt_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "tillegg_tenant_id_tenants_id_fk": {
+          "name": "tillegg_tenant_id_tenants_id_fk",
+          "tableFrom": "tillegg",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tillegg_prosjekt_id_prosjekter_id_fk": {
+          "name": "tillegg_prosjekt_id_prosjekter_id_fk",
+          "tableFrom": "tillegg",
+          "tableTo": "prosjekter",
+          "columnsFrom": [
+            "prosjekt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tillegg_ansatt_id_ansatte_id_fk": {
+          "name": "tillegg_ansatt_id_ansatte_id_fk",
+          "tableFrom": "tillegg",
+          "tableTo": "ansatte",
+          "columnsFrom": [
+            "ansatt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tillegg_bilde_id_vedlegg_id_fk": {
+          "name": "tillegg_bilde_id_vedlegg_id_fk",
+          "tableFrom": "tillegg",
+          "tableTo": "vedlegg",
+          "columnsFrom": [
+            "bilde_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tillegg_signatur_id_vedlegg_id_fk": {
+          "name": "tillegg_signatur_id_vedlegg_id_fk",
+          "tableFrom": "tillegg",
+          "tableTo": "vedlegg",
+          "columnsFrom": [
+            "signatur_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.timeforinger": {
+      "name": "timeforinger",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ansatt_id": {
+          "name": "ansatt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prosjekt_id": {
+          "name": "prosjekt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dato": {
+          "name": "dato",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timer": {
+          "name": "timer",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aktivitet_id": {
+          "name": "aktivitet_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kommentar": {
+          "name": "kommentar",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fra_kjorebok": {
+          "name": "fra_kjorebok",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'i_ko'"
+        },
+        "tripletex_entry_id": {
+          "name": "tripletex_entry_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "feilmelding": {
+          "name": "feilmelding",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "forsok": {
+          "name": "forsok",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "klient_nokkel": {
+          "name": "klient_nokkel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "sendt": {
+          "name": "sendt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "timeforing_klientnokkel_idx": {
+          "name": "timeforing_klientnokkel_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "klient_nokkel",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "timeforing_ansatt_dato_idx": {
+          "name": "timeforing_ansatt_dato_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ansatt_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "dato",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "timeforing_status_idx": {
+          "name": "timeforing_status_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "timeforinger_tenant_id_tenants_id_fk": {
+          "name": "timeforinger_tenant_id_tenants_id_fk",
+          "tableFrom": "timeforinger",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "timeforinger_ansatt_id_ansatte_id_fk": {
+          "name": "timeforinger_ansatt_id_ansatte_id_fk",
+          "tableFrom": "timeforinger",
+          "tableTo": "ansatte",
+          "columnsFrom": [
+            "ansatt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "timeforinger_prosjekt_id_prosjekter_id_fk": {
+          "name": "timeforinger_prosjekt_id_prosjekter_id_fk",
+          "tableFrom": "timeforinger",
+          "tableTo": "prosjekter",
+          "columnsFrom": [
+            "prosjekt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.vedlegg": {
+      "name": "vedlegg",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prosjekt_id": {
+          "name": "prosjekt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slag": {
+          "name": "slag",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mimetype": {
+          "name": "mimetype",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data": {
+          "name": "data",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "storrelse": {
+          "name": "storrelse",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lastet_opp_av": {
+          "name": "lastet_opp_av",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tripletex_lastet_opp": {
+          "name": "tripletex_lastet_opp",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tripletex_feilmelding": {
+          "name": "tripletex_feilmelding",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "data_slettet": {
+          "name": "data_slettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opprettet": {
+          "name": "opprettet",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "vedlegg_prosjekt_idx": {
+          "name": "vedlegg_prosjekt_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "prosjekt_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "slag",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "vedlegg_tenant_id_tenants_id_fk": {
+          "name": "vedlegg_tenant_id_tenants_id_fk",
+          "tableFrom": "vedlegg",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "vedlegg_prosjekt_id_prosjekter_id_fk": {
+          "name": "vedlegg_prosjekt_id_prosjekter_id_fk",
+          "tableFrom": "vedlegg",
+          "tableTo": "prosjekter",
+          "columnsFrom": [
+            "prosjekt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "vedlegg_lastet_opp_av_ansatte_id_fk": {
+          "name": "vedlegg_lastet_opp_av_ansatte_id_fk",
+          "tableFrom": "vedlegg",
+          "tableTo": "ansatte",
+          "columnsFrom": [
+            "lastet_opp_av"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

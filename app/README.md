@@ -50,6 +50,23 @@ npm run db:seed           # testdata for utvikling
 npm run dev
 ```
 
+### Se appen uten Entra ID
+
+Innlogging går normalt gjennom Microsoft Entra ID, og den app-registreringen
+må noen sette opp før det finnes en vei inn. For å komme inn før det:
+
+```bash
+DEMO_INNLOGGING=1        # i .env
+```
+
+Da får innloggingssida en liste over de ansatte som ligger i databasen, og
+man velger hvem man vil se appen som. Ingen passord.
+
+Demomodus slipper bare inn ansatte som allerede finnes og er aktive — den
+lager ingen kontoer — men den er likevel en åpen dør. **Den skal stå av i
+det øyeblikket ekte kundedata legges inn.** Bakgrunnen står i
+`src/lib/demo.ts`.
+
 ### Miljøvariabler
 
 Alle ligger forklart i `.env.example`. De tre som må på plass før noe virker:

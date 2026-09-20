@@ -13,6 +13,11 @@ hvert CRM og henvendelser for ledelsen.
 | `app/` | Selve applikasjonen. Next.js, TypeScript, PostgreSQL. Se `app/README.md`. |
 | `design/` | Den klikkbare prototypen fra Claude Design, som formspråket er hentet fra. |
 
+## Sette det i drift
+
+Skal du få systemet ut på nett så de ansatte kan bruke det, følg
+[`docs/sett-opp.md`](docs/sett-opp.md). Den trenger ingen terminal.
+
 ## Kom i gang
 
 ```bash

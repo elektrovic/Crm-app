@@ -4,12 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run db:migrate && npm run db:demodata && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
+    "db:migrate": "node --env-file-if-exists=.env --import tsx src/db/migrer.ts",
+    "db:demodata": "node --env-file-if-exists=.env --import tsx src/db/demodata.ts",
     "db:seed": "node --env-file-if-exists=.env --import tsx src/db/seed.ts",
     "test": "node --conditions=react-server --import tsx --test \"src/**/*.test.ts\""
   },
