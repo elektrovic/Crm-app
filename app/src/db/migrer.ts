@@ -18,14 +18,26 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 
 async function kjor() {
-  const url = process.env.DATABASE_URL;
+  // Migrering endrer selve tabellene, og det skal gå i én forbindelse som
+  // holder seg i ro fra start til slutt.
+  //
+  // Transaksjonsposeren til Supabase (port 6543) gir ingen slik garanti —
+  // den bytter forbindelse under deg. Derfor kan DATABASE_URL_DIREKTE
+  // settes til direkteforbindelsen, som brukes her og bare her. Er den
+  // ikke satt, brukes den vanlige.
+  const url = process.env.DATABASE_URL_DIREKTE || process.env.DATABASE_URL;
   if (!url) {
     console.log("Ingen DATABASE_URL — hopper over migrering.");
     return;
   }
 
-  // `max: 1` fordi migrering skal gå i én forbindelse, i rekkefølge.
-  const forbindelse = postgres(url, { max: 1 });
+  const lokal = url.includes("localhost") || url.includes("127.0.0.1");
+
+  const forbindelse = postgres(url, {
+    max: 1,
+    prepare: false,
+    ssl: lokal ? false : "require",
+  });
 
   try {
     await migrate(drizzle(forbindelse), { migrationsFolder: "./drizzle" });

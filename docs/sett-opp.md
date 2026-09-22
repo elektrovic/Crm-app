@@ -10,23 +10,48 @@ Rekkefølgen betyr noe — Netlify trenger databasen før den bygger.
 
 ---
 
-## 1. Database hos Neon
+## 1. Database hos Supabase
 
-1. Gå til [neon.tech](https://neon.tech) og lag en konto.
-2. Lag et prosjekt. Kall det `montorappen`.
-3. **Velg region i EU** — Frankfurt eller Stockholm.
+1. Gå til [supabase.com](https://supabase.com) og lag et prosjekt.
+   Kall det `montorappen`.
+2. **Velg region i EU** — Frankfurt eller Stockholm.
    Dette er ikke en smakssak. Det ligger personopplysninger og
    posisjonsdata fra bilene i denne databasen, og de skal bli i EU/EØS.
-4. Kopier tilkoblingsstrengen. Den ser slik ut:
+3. Sett et databasepassord og ta vare på det.
+4. Gå til **Project Settings → Database → Connection string**.
 
-   ```
-   postgresql://bruker:passord@ep-noe-12345.eu-central-1.aws.neon.tech/neondb?sslmode=require
-   ```
+Der finner du flere strenger. **Du trenger to av dem**, og forskjellen
+er viktig:
 
-   Ta med `?sslmode=require` på slutten.
+| Hvilken | Port | Skal settes som |
+|---|---|---|
+| **Transaction pooler** | `6543` | `DATABASE_URL` |
+| **Direct connection** (eller Session pooler) | `5432` | `DATABASE_URL_DIREKTE` |
 
-Tabellene lager appen selv. Det skjer under bygginga, og det trenger du
-ikke gjøre noe med.
+Bytt ut `[YOUR-PASSWORD]` med passordet ditt i begge.
+
+### Hvorfor to
+
+Appen kjører som serverløse funksjoner — mange korte liv, ikke én server
+som står. Til det er transaksjonsposeren riktig: den deler et lite knippe
+forbindelser på mange kall.
+
+Men den gir deg ikke den samme forbindelsen to ganger. Det går fint for
+vanlige spørringer, og dårlig når tabellene skal endres — da må én
+forbindelse stå i ro fra start til slutt. Derfor kjører migreringen over
+den direkte forbindelsen, og bare den.
+
+Setter du bare `DATABASE_URL`, brukes den til begge. Det virker ofte, og
+feiler når du minst vil det.
+
+### Supabase sin GitHub-kobling
+
+Har du koblet Supabase til GitHub-lageret, gjør ikke den noe for oss.
+Den ser etter migrasjoner i `supabase/migrations`, og våre ligger i
+`app/drizzle` og kjøres under bygginga på Netlify. Den er ufarlig å la
+stå, men den er ikke det som lager tabellene.
+
+Tabellene lager appen selv. Du trenger ikke gjøre noe med dem.
 
 ---
 
@@ -66,7 +91,8 @@ tegn hver.
 
 | Navn | Verdi |
 |---|---|
-| `DATABASE_URL` | Tilkoblingsstrengen fra Neon |
+| `DATABASE_URL` | Transaction pooler, port **6543** |
+| `DATABASE_URL_DIREKTE` | Direct connection, port **5432** |
 | `AUTH_SECRET` | Nøkkel 1 |
 | `KRYPTERINGSNOKKEL` | Nøkkel 2 |
 | `SYNK_NOKKEL` | Nøkkel 3 |
