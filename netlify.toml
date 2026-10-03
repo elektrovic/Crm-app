@@ -6,8 +6,6 @@
 #
 # MERK: når `base` er satt, tolkes ALLE andre stier i denne fila relativt
 # til den. Derfor står det `.next` og ikke `app/.next`.
-#
-# Next.js-støtten er innebygd i Netlify. Ikke installer noen plugin.
 
 [build]
   base = "app"
@@ -15,6 +13,18 @@
   publish = ".next"
   # Relativt til base, altså app/netlify/functions
   functions = "netlify/functions"
+
+# Next.js-kjøretiden, bedt om med navn.
+#
+# Netlify finner den vanligvis selv. Den gjorde ikke det her: første
+# utrulling kom fra en opplastet pakke i stedet for fra Git, kjøretiden
+# kjørte aldri, og bare de statiske filene havnet ut. Alt som rendres på
+# serveren — altså nesten hele appen — svarte 404.
+#
+# Det er en stille feil: bygget blir grønt, og sida er død. Derfor står
+# den her, så den ikke avhenger av at Netlify gjetter riktig.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 [build.environment]
   # Samme versjon som utviklingsmaskinen, så et bygg ikke plutselig
