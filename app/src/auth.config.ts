@@ -8,7 +8,9 @@
 import type { NextAuthConfig } from "next-auth";
 
 /** Sider som er åpne uten innlogging. */
-const APNE_STIER = ["/logg-inn", "/api/auth"];
+// Helsesjekken må være åpen her — den har sin egen nøkkel, og den skal
+// kunne svare selv når databasen er nede, altså når innlogging ikke går.
+const APNE_STIER = ["/logg-inn", "/api/auth", "/api/helse"];
 
 export const authConfig = {
   providers: [], // Fylles ut i auth.ts — middleware trenger dem ikke.
