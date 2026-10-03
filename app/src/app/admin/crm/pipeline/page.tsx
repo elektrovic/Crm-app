@@ -1,7 +1,8 @@
 import { krevRolle } from "@/lib/tilgang";
-import { hentPipeline } from "@/lib/data/crm";
+import { hentKundevalg, hentPipeline } from "@/lib/data/crm";
 import { PIPELINE, type PipelineTrinn } from "@/db/schema";
 import { Etikett, Kort, Pille, kroner } from "@/components/ui";
+import { NyHenvendelse, Trinnvelger } from "../crm-handlinger";
 
 export const metadata = { title: "Pipeline · CRM" };
 
@@ -37,13 +38,16 @@ function alder(mottatt: Date): string {
 
 export default async function Pipeline() {
   const okt = await krevRolle("leder");
-  const kort = await hentPipeline(okt);
+  const [kort, kunder] = await Promise.all([hentPipeline(okt), hentKundevalg(okt)]);
 
   // Tapt vises ikke i tavla — den ville bare fylt en kolonne med historikk.
   const synligeTrinn = PIPELINE.filter((t) => t !== "tapt");
 
   return (
-    <div className="sc" style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8 }}>
+    <>
+      <NyHenvendelse kunder={kunder} />
+
+      <div className="sc" style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8 }}>
       {synligeTrinn.map((trinn) => {
         const iTrinn = kort.filter((k) => k.trinn === trinn);
         const sum = iTrinn.reduce((a, k) => a + (k.sum ?? 0), 0);
@@ -135,12 +139,17 @@ export default async function Pipeline() {
                       </span>
                     )}
                   </div>
+
+                  <div style={{ marginTop: 10 }}>
+                    <Trinnvelger id={k.id} trinn={k.trinn} />
+                  </div>
                 </Kort>
               ))
             )}
           </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </>
   );
 }

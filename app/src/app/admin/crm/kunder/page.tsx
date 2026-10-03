@@ -1,7 +1,8 @@
 import { krevRolle } from "@/lib/tilgang";
 import { hentKunder } from "@/lib/data/crm";
 import { Celle, Pille, Tabell, kroner, visDato } from "@/components/ui";
-import type { Kundestatus } from "@/db/schema";
+import type { Avdeling, Kundestatus } from "@/db/schema";
+import { KundeSkjema } from "../crm-handlinger";
 
 export const metadata = { title: "Kunder · CRM" };
 
@@ -17,8 +18,11 @@ export default async function Kunder() {
   const rader = await hentKunder(okt);
 
   return (
-    <Tabell
-      kolonner={["Kunde", "Type", "Avdeling", "Prosjekter", "Omsetning", "Status"]}
+    <>
+      <KundeSkjema />
+
+      <Tabell
+      kolonner={["Kunde", "Type", "Avdeling", "Prosjekter", "Omsetning", "Status", ""]}
       antall={rader.length}
       tomtekst="Ingen kunder lagt inn ennå."
     >
@@ -45,9 +49,26 @@ export default async function Kunder() {
             <Celle>
               <Pille farge={status.farge}>{status.tekst}</Pille>
             </Celle>
+            <Celle>
+              <KundeSkjema
+                kunde={{
+                  id: k.id,
+                  navn: k.navn,
+                  type: k.type,
+                  orgnummer: null,
+                  kontaktperson: k.kontaktperson,
+                  telefon: k.telefon,
+                  epost: k.epost,
+                  adresse: null,
+                  avdeling: k.avdeling as Avdeling | null,
+                  status: k.status,
+                }}
+              />
+            </Celle>
           </tr>
         );
       })}
-    </Tabell>
+      </Tabell>
+    </>
   );
 }

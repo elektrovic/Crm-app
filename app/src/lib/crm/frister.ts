@@ -46,6 +46,8 @@ export type Oppfolgingsrad = {
   id: string;
   hva: string;
   frist: string;
+  /** Id-en, ikke bare navnet: nedtrekket for ansvarlig trenger den. */
+  ansvarlig: string | null;
   ansvarligNavn: string | null;
   kundeNavn: string | null;
   fullfort: boolean;

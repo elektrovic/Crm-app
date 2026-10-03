@@ -1,9 +1,10 @@
 import { krevRolle } from "@/lib/tilgang";
-import { hentReklamasjoner } from "@/lib/data/crm";
+import { hentKundevalg, hentReklamasjoner } from "@/lib/data/crm";
 import { iDag } from "@/lib/data/dagen";
 import { klassifiserFrist } from "@/lib/crm/frister";
 import { Celle, Pille, Tabell, kroner, visDato } from "@/components/ui";
 import type { Reklamasjonsstatus } from "@/db/schema";
+import { NyReklamasjon, Reklamasjonsstatusvelger } from "../crm-handlinger";
 
 export const metadata = { title: "Reklamasjoner · CRM" };
 
@@ -16,29 +17,21 @@ export const metadata = { title: "Reklamasjoner · CRM" };
  * Statusene er gjettet ut fra prototypen og skal rettes når dere sier hva
  * dere faktisk kaller dem.
  */
-const STATUSNAVN: Record<
-  Reklamasjonsstatus,
-  { tekst: string; farge: "rod" | "oransje" | "bla" | "gronn" }
-> = {
-  ny: { tekst: "Ny", farge: "rod" },
-  under_behandling: { tekst: "Under behandling", farge: "oransje" },
-  venter_kunde: { tekst: "Venter kunde", farge: "bla" },
-  lukket: { tekst: "Lukket", farge: "gronn" },
-};
-
 export default async function Reklamasjoner() {
   const okt = await krevRolle("leder");
-  const rader = await hentReklamasjoner(okt);
+  const [rader, kunder] = await Promise.all([hentReklamasjoner(okt), hentKundevalg(okt)]);
   const idag = iDag();
 
   return (
-    <Tabell
+    <>
+      <NyReklamasjon kunder={kunder} iDag={idag} />
+
+      <Tabell
       kolonner={["Sak", "Kunde", "Mottatt", "Frist", "Ansvarlig", "Kostnad", "Status"]}
       antall={rader.length}
       tomtekst="Ingen reklamasjoner registrert."
     >
       {rader.map((r) => {
-        const status = STATUSNAVN[r.status];
         const overFrist =
           r.frist !== null &&
           r.status !== "lukket" &&
@@ -69,11 +62,12 @@ export default async function Reklamasjoner() {
             <Celle>{r.ansvarligNavn ?? <Pille farge="oransje">Ufordelt</Pille>}</Celle>
             <Celle tall>{r.kostnad === null ? "—" : kroner.format(r.kostnad)}</Celle>
             <Celle>
-              <Pille farge={status.farge}>{status.tekst}</Pille>
+              <Reklamasjonsstatusvelger id={r.id} status={r.status} />
             </Celle>
           </tr>
         );
       })}
-    </Tabell>
+      </Tabell>
+    </>
   );
 }

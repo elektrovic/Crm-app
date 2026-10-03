@@ -14,6 +14,7 @@ const IDAG = "2026-09-05";
 function rad(over: Partial<Oppfolgingsrad> & { id: string; frist: string }): Oppfolgingsrad {
   return {
     hva: "Ring kunde",
+    ansvarlig: "11111111-1111-4111-8111-111111111111",
     ansvarligNavn: "Marius Kvam",
     kundeNavn: "Sameiet Ullevålsveien 71",
     fullfort: false,

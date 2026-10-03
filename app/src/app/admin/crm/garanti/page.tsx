@@ -1,8 +1,9 @@
 import { krevRolle } from "@/lib/tilgang";
-import { hentGarantier } from "@/lib/data/crm";
+import { hentGarantier, hentKundevalg } from "@/lib/data/crm";
 import { iDag } from "@/lib/data/dagen";
 import { klassifiserFrist } from "@/lib/crm/frister";
 import { Celle, Pille, Tabell, visDato } from "@/components/ui";
+import { Kontaktetkryss, NyGaranti } from "../crm-handlinger";
 
 export const metadata = { title: "Garanti og gjenkjøp · CRM" };
 
@@ -12,7 +13,7 @@ export const metadata = { title: "Garanti og gjenkjøp · CRM" };
  */
 export default async function Garanti() {
   const okt = await krevRolle("leder");
-  const rader = await hentGarantier(okt);
+  const [rader, kunder] = await Promise.all([hentGarantier(okt), hentKundevalg(okt)]);
   const idag = iDag();
 
   const klarAaRinge = rader.filter(
@@ -44,8 +45,10 @@ export default async function Garanti() {
         </div>
       )}
 
+      <NyGaranti kunder={kunder} iDag={idag} />
+
       <Tabell
-        kolonner={["Kunde", "Utført", "Garanti utløper", "Anbefaling", "Kontaktes", "Status"]}
+        kolonner={["Kunde", "Utført", "Garanti utløper", "Anbefaling", "Kontaktes", "Status", ""]}
         antall={rader.length}
         tomtekst="Ingen garantier registrert."
       >
@@ -72,6 +75,9 @@ export default async function Garanti() {
                 ) : (
                   <Pille farge="bla">Venter</Pille>
                 )}
+              </Celle>
+              <Celle>
+                <Kontaktetkryss id={g.id} kontaktet={g.kontaktet} />
               </Celle>
             </tr>
           );

@@ -1,8 +1,9 @@
 import { krevRolle } from "@/lib/tilgang";
-import { hentOppfolginger } from "@/lib/data/crm";
+import { hentAnsattvalg, hentKundevalg, hentOppfolginger } from "@/lib/data/crm";
 import { iDag } from "@/lib/data/dagen";
 import { sorterOppfolginger, tellFrister } from "@/lib/crm/frister";
 import { Celle, Etikett, Kort, Pille, Tabell, visDato } from "@/components/ui";
+import { NyOppfolging, Oppfolgingsrad } from "./oppfolging-handlinger";
 
 export const metadata = { title: "Oppfølging · CRM" };
 
@@ -12,7 +13,13 @@ export const metadata = { title: "Oppfølging · CRM" };
  */
 export default async function Oppfolging() {
   const okt = await krevRolle("leder");
-  const rader = sorterOppfolginger(await hentOppfolginger(okt), iDag());
+  const dato = iDag();
+  const [alle, ansatte, kunder] = await Promise.all([
+    hentOppfolginger(okt),
+    hentAnsattvalg(okt),
+    hentKundevalg(okt),
+  ]);
+  const rader = sorterOppfolginger(alle, dato);
   const tall = tellFrister(rader);
 
   return (
@@ -61,8 +68,10 @@ export default async function Oppfolging() {
         </Kort>
       </div>
 
+      <NyOppfolging ansatte={ansatte} kunder={kunder} iDag={dato} />
+
       <Tabell
-        kolonner={["Hva", "Kunde", "Ansvarlig", "Frist", "Status"]}
+        kolonner={["Hva", "Kunde", "Frist", "Status", "Handling"]}
         antall={rader.length}
         tomtekst="Ingen åpne oppfølginger. Alt er ajour."
       >
@@ -70,9 +79,6 @@ export default async function Oppfolging() {
           <tr key={r.id}>
             <Celle hoved>{r.hva}</Celle>
             <Celle>{r.kundeNavn ?? "—"}</Celle>
-            <Celle>
-              {r.ansvarligNavn ?? <Pille farge="oransje">Ufordelt</Pille>}
-            </Celle>
             <Celle tall under={r.tekst}>
               {visDato(r.frist)}
             </Celle>
@@ -96,6 +102,14 @@ export default async function Oppfolging() {
                       ? "Snart"
                       : "Senere"}
               </Pille>
+            </Celle>
+            <Celle>
+              <Oppfolgingsrad
+                id={r.id}
+                fullfort={r.fullfort}
+                ansvarlig={r.ansvarlig}
+                ansatte={ansatte}
+              />
             </Celle>
           </tr>
         ))}

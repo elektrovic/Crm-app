@@ -30,6 +30,7 @@ export async function hentOppfolginger(okt: Okt): Promise<Oppfolgingsrad[]> {
       hva: oppfolginger.hva,
       frist: oppfolginger.frist,
       fullfort: oppfolginger.fullfort,
+      ansvarlig: oppfolginger.ansvarlig,
       ansvarligNavn: ansatte.navn,
       kundeNavn: kunder.navn,
     })
@@ -308,4 +309,22 @@ export async function hentCrmNokkeltall(okt: Okt, iDag: string): Promise<CrmNokk
     antallTilbud: tilbud?.antall ?? 0,
     gjenkjopKlare: gjenkjop?.antall ?? 0,
   };
+}
+
+/** Navnelista til nedtrekkene: hvem en sak kan fordeles til. */
+export async function hentAnsattvalg(okt: Okt) {
+  return db
+    .select({ id: ansatte.id, navn: ansatte.navn })
+    .from(ansatte)
+    .where(and(eq(ansatte.tenantId, okt.tenantId), eq(ansatte.aktiv, true)))
+    .orderBy(ansatte.navn);
+}
+
+/** Kundelista til nedtrekkene. */
+export async function hentKundevalg(okt: Okt) {
+  return db
+    .select({ id: kunder.id, navn: kunder.navn })
+    .from(kunder)
+    .where(eq(kunder.tenantId, okt.tenantId))
+    .orderBy(kunder.navn);
 }
