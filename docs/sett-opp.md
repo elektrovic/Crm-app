@@ -47,6 +47,28 @@ tidsavbrudd uten forklaring.
 
 Begge strengene våre skal derfor gå gjennom **pooleren**, som har IPv4.
 
+### Finn riktig vertsnavn — ikke gjett
+
+Poseren har flere verter (`aws-0-…`, `aws-1-…`), og begge svarer på DNS.
+Velger du feil, får du «Tenant or user not found» først når appen kjører
+i produksjon — ikke under bygging.
+
+Kopier derfor strengen fra dashbordet i stedet for å gjette. Skal du
+sjekke en streng du allerede har, kan databasen teste den selv:
+
+```sql
+create extension if not exists dblink with schema extensions;
+
+select * from extensions.dblink(
+  'host=… port=6543 dbname=postgres sslmode=require
+   user=… password=… connect_timeout=8',
+  'select count(*)::text from ansatte'
+) as t(antall text);
+```
+
+Får du et tall tilbake, er strengen riktig — vert, bruker og passord.
+Får du en feil, står grunnen i feilmeldingen.
+
 ### Hvorfor to
 
 Appen kjører som serverløse funksjoner — mange korte liv, ikke én server
