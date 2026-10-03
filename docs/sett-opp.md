@@ -176,3 +176,31 @@ Dette er ventet på dette stadiet. Ingenting av det er ødelagt.
 Alle fire er med vilje: funksjoner uten nøkler skjuler seg selv i stedet
 for å feile foran brukeren. Oppskrift for hver av dem ligger i
 `app/README.md`.
+
+---
+
+## Slik står oppsettet nå
+
+| | |
+|---|---|
+| Lager | `elektrovic/Crm-app`, gren `main` |
+| Hosting | Netlify, bygger automatisk ved hver push |
+| Database | Supabase, region `eu-west-2` (London) |
+| Innlogging | Demomodus — **ingen pålogging** |
+
+### To ting å vite før dette tar ekte data
+
+**Serverfunksjonene kjører i USA.** Netlify legger dem i `us-east-2`
+(Ohio) på gratisplanen, og det kan ikke endres uten å betale. Alt appen
+gjør på serveren — inkludert å behandle posisjonsdata fra bilene — skjer
+altså utenfor EU/EØS, selv om databasen står i London. Det går fint for
+demodata. Det går ikke for ekte ansatte.
+
+**Databasen står i London, ikke i EU.** `eu-west-2` er Storbritannia.
+Overføring dit er tillatt i dag gjennom EU-kommisjonens
+adekvansbeslutning for UK, men det er en annen og svakere ordning enn å
+ligge i EU/EØS. Frankfurt eller Stockholm er ryddigere. Å flytte betyr
+nytt Supabase-prosjekt.
+
+Begge deler er greie mens dere ser på systemet med oppdiktede data.
+Begge må løses før første ekte montør fører en time.
