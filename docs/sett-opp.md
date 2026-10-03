@@ -226,3 +226,22 @@ nytt Supabase-prosjekt.
 
 Begge deler er greie mens dere ser på systemet med oppdiktede data.
 Begge må løses før første ekte montør fører en time.
+
+---
+
+## En felle i Netlify: «secret»-flagget
+
+Miljøvariabler kan merkes som hemmelige i Netlify. Settes de med det
+flagget gjennom API-et, kan de bli **stilltiende forkastet**: svaret sier
+at variabelen er lagret, og den finnes ikke.
+
+Det så slik ut her: appen svarte «A server error occurred» på hver side,
+og helsesjekken svarte «Not found». Begge deler fordi `DATABASE_URL` og
+`SYNK_NOKKEL` ikke fantes — ikke fordi verdiene var feil.
+
+**Sjekk derfor alltid etterpå** at variablene faktisk ligger der, i stedet
+for å stole på kvitteringen. Står de ikke i lista, legg dem inn uten
+hemmelig-flagget.
+
+Og husk: **endrede miljøvariabler slår ikke inn før neste utrulling.**
+Å rette en verdi uten å bygge på nytt gjør ingenting.
