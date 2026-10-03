@@ -26,9 +26,26 @@ er viktig:
 | Hvilken | Port | Skal settes som |
 |---|---|---|
 | **Transaction pooler** | `6543` | `DATABASE_URL` |
-| **Direct connection** (eller Session pooler) | `5432` | `DATABASE_URL_DIREKTE` |
+| **Session pooler** | `5432` | `DATABASE_URL_DIREKTE` |
 
 Bytt ut `[YOUR-PASSWORD]` med passordet ditt i begge.
+
+### Ikke bruk «Direct connection»
+
+Dashbordet tilbyr også en **Direct connection** (`db.<ref>.supabase.co`).
+Den ser ut som det riktige valget, og den virker ikke:
+
+```
+$ host db.<ref>.supabase.co
+  IPv4: ingen
+  IPv6: 2a05:d01c:...
+```
+
+På gratisplanen har den bare IPv6-adresse. Netlify sine funksjoner går ut
+over IPv4. Forbindelsen blir aldri opprettet, og feilen du får er en
+tidsavbrudd uten forklaring.
+
+Begge strengene våre skal derfor gå gjennom **pooleren**, som har IPv4.
 
 ### Hvorfor to
 
@@ -92,7 +109,7 @@ tegn hver.
 | Navn | Verdi |
 |---|---|
 | `DATABASE_URL` | Transaction pooler, port **6543** |
-| `DATABASE_URL_DIREKTE` | Direct connection, port **5432** |
+| `DATABASE_URL_DIREKTE` | Session pooler, port **5432** |
 | `AUTH_SECRET` | Nøkkel 1 |
 | `KRYPTERINGSNOKKEL` | Nøkkel 2 |
 | `SYNK_NOKKEL` | Nøkkel 3 |
