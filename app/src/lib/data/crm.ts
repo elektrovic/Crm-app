@@ -6,7 +6,7 @@
  * rutene som kaller dem.
  */
 import "server-only";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   ansatte,
@@ -114,15 +114,19 @@ export async function hentKunder(okt: Okt) {
       epost: kunder.epost,
       omsetning: kunder.omsetning,
       omsetningSynket: kunder.omsetningSynket,
-      // Antall prosjekter telles i spørringen framfor i grensesnittet, så
-      // lista kan sorteres på det uten å hente alle prosjektene.
-      antallProsjekter: sql<number>`(
-        select count(*) from ${prosjekter}
-        where ${prosjekter.kundeId} = ${kunder.id}
-      )`.mapWith(Number),
+      // Telles med en join, ikke en underspørring.
+      //
+      // Underspørringen som sto her ble til «where "kunde_id" = "id"» —
+      // uten tabellnavn. Inne i underspørringen betyr «id» prosjektets
+      // egen id, så den sammenlignet prosjekter.kunde_id med
+      // prosjekter.id og ga null på hver eneste kunde. Den var stille:
+      // spørringen kjørte fint, tallet var bare alltid feil.
+      antallProsjekter: sql<number>`count(${prosjekter.id})`.mapWith(Number),
     })
     .from(kunder)
+    .leftJoin(prosjekter, eq(prosjekter.kundeId, kunder.id))
     .where(eq(kunder.tenantId, okt.tenantId))
+    .groupBy(kunder.id)
     .orderBy(kunder.navn);
 
   return rader.map((r) => ({
@@ -222,5 +226,86 @@ export async function hentDashboardtall(okt: Okt) {
     ufordelte: ufordelte?.antall ?? 0,
     nyeHenvendelser: nyeHenvendelser?.antall ?? 0,
     apneReklamasjoner: apneReklamasjoner?.antall ?? 0,
+  };
+}
+
+export type CrmNokkeltall = {
+  nyeSyvDager: number;
+  ubesvartOverDognet: number;
+  apneReklamasjoner: number;
+  reklamasjonerOverFrist: number;
+  tilbudUte: number;
+  antallTilbud: number;
+  gjenkjopKlare: number;
+};
+
+/**
+ * De fem kortene øverst i CRM-en.
+ *
+ * «Ubesvart over 24 t» teller bare henvendelser som fortsatt står på
+ * `ny`. Har noen tatt tak i den, er den ikke ubesvart lenger, uansett hvor
+ * gammel den er.
+ */
+export async function hentCrmNokkeltall(okt: Okt, iDag: string): Promise<CrmNokkeltall> {
+  const syvDager = new Date(Date.now() - 7 * 86_400_000);
+  const etDognSiden = new Date(Date.now() - 86_400_000);
+
+  const [nye] = await db
+    .select({ antall: sql<number>`count(*)`.mapWith(Number) })
+    .from(henvendelser)
+    .where(
+      // gte, ikke en sql-streng: da vet driveren at kolonnen er et
+      // tidspunkt og oversetter Date-objektet riktig.
+      and(eq(henvendelser.tenantId, okt.tenantId), gte(henvendelser.mottatt, syvDager)),
+    );
+
+  const [ubesvart] = await db
+    .select({ antall: sql<number>`count(*)`.mapWith(Number) })
+    .from(henvendelser)
+    .where(
+      and(
+        eq(henvendelser.tenantId, okt.tenantId),
+        eq(henvendelser.trinn, "ny"),
+        lt(henvendelser.mottatt, etDognSiden),
+      ),
+    );
+
+  const [rek] = await db
+    .select({
+      apne: sql<number>`count(*)`.mapWith(Number),
+      overFrist: sql<number>`count(*) filter (where ${reklamasjoner.frist} is not null and ${reklamasjoner.frist} < ${iDag})`.mapWith(
+        Number,
+      ),
+    })
+    .from(reklamasjoner)
+    .where(and(eq(reklamasjoner.tenantId, okt.tenantId), sql`${reklamasjoner.status} <> 'lukket'`));
+
+  const [tilbud] = await db
+    .select({
+      sum: sql<number>`coalesce(sum(${henvendelser.sum}), 0)`.mapWith(Number),
+      antall: sql<number>`count(*)`.mapWith(Number),
+    })
+    .from(henvendelser)
+    .where(and(eq(henvendelser.tenantId, okt.tenantId), eq(henvendelser.trinn, "tilbud_sendt")));
+
+  const [gjenkjop] = await db
+    .select({ antall: sql<number>`count(*)`.mapWith(Number) })
+    .from(garantier)
+    .where(
+      and(
+        eq(garantier.tenantId, okt.tenantId),
+        eq(garantier.kontaktet, false),
+        sql`${garantier.kontaktesEtter} is not null and ${garantier.kontaktesEtter} <= ${iDag}`,
+      ),
+    );
+
+  return {
+    nyeSyvDager: nye?.antall ?? 0,
+    ubesvartOverDognet: ubesvart?.antall ?? 0,
+    apneReklamasjoner: rek?.apne ?? 0,
+    reklamasjonerOverFrist: rek?.overFrist ?? 0,
+    tilbudUte: tilbud?.sum ?? 0,
+    antallTilbud: tilbud?.antall ?? 0,
+    gjenkjopKlare: gjenkjop?.antall ?? 0,
   };
 }

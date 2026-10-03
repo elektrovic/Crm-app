@@ -6,9 +6,10 @@
  * kan testes uten å ringe ABAX.
  *
  * Kjøres med: npm run db:seed
- * Trygg å kjøre flere ganger; den hopper over det som finnes fra før.
+ * Trygg å kjøre flere ganger: finner den demodata fra før, lar den alt
+ * stå og avslutter. Se guarden nederst i denne kommentaren.
  */
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "./index";
 import {
   adkomst,
@@ -25,12 +26,34 @@ import {
   skjemamaler,
   tenants,
   tildelinger,
+  tillegg,
+  timeforinger,
 } from "./schema";
 
 const TENANT = process.env.DEFAULT_TENANT_ID ?? "halland";
 
 async function seed() {
   console.log("Legger inn testdata…");
+
+  // De fleste demotabellene har ingen naturlig nøkkel å kollidere på —
+  // kunder, henvendelser, reklamasjoner og oppfølginger kan hete det
+  // samme uten å være det samme. `onConflictDoNothing` gjør derfor
+  // ingenting for dem, og en ny kjøring ville lagt inn alt på nytt.
+  //
+  // Det er ikke et teoretisk problem: med SEED_VED_BYGG=1 kjører dette
+  // ved hvert eneste bygg, og demoen ville fylt seg opp med duplikater.
+  //
+  // Derfor: har denne kunden fått demodata før, lar vi det stå.
+  const [finnes] = await db
+    .select({ antall: sql<number>`count(*)`.mapWith(Number) })
+    .from(kunder)
+    .where(eq(kunder.tenantId, TENANT));
+
+  if ((finnes?.antall ?? 0) > 0) {
+    console.log("Demodata ligger inne fra før — hopper over.");
+    console.log("Vil du ha dem på nytt, må de gamle radene slettes først.");
+    process.exit(0);
+  }
 
   await db
     .insert(tenants)
@@ -122,6 +145,33 @@ async function seed() {
         lon: "10.786300",
         avdeling: "Elektro",
         farge: "#A855F7",
+      },
+      // Alle tre avdelingene må være representert. Uten dette viser
+      // «Tilleggssalg per avdeling» på dashbordet bare Elektro, og
+      // prislinjene for lås og eiendomspleie får ingen jobb å høre til.
+      {
+        tenantId: TENANT,
+        tripletexProjectId: 100301,
+        nummer: "3016",
+        navn: "Adgangskontroll Nydalen",
+        kunde: "Nydalen Næringspark AS",
+        adresse: "Gjerdrums vei 10, 0484 Oslo",
+        lat: "59.949500",
+        lon: "10.760800",
+        avdeling: "Lås og sikkerhet",
+        farge: "#6366F1",
+      },
+      {
+        tenantId: TENANT,
+        tripletexProjectId: 100207,
+        nummer: "2071",
+        navn: "Takvask Ullevålsveien 71",
+        kunde: "Sameiet Ullevålsveien 71",
+        adresse: "Ullevålsveien 71, 0454 Oslo",
+        lat: "59.934900",
+        lon: "10.738600",
+        avdeling: "Eiendomspleie",
+        farge: "#22C55E",
       },
     ])
     .onConflictDoNothing()
@@ -404,6 +454,79 @@ async function seed() {
       { tenantId: TENANT, tripletexActivityId: 9005, navn: "Internt - verksted og bil", nummer: "900", fakturerbar: false },
     ])
     .onConflictDoNothing();
+
+  // Timer og tillegg. Uten disse står ledelsens dashboard tomt, og da ser
+  // det ødelagt ut selv om det virker. Datoene regnes ut fra dagen seeden
+  // kjøres, så tallene er ferske uansett når det skjer.
+  const alleProsjekter = await db
+    .select({ id: prosjekter.id, avdeling: prosjekter.avdeling })
+    .from(prosjekter)
+    .where(eq(prosjekter.tenantId, TENANT));
+
+  const alleAnsatte = await db
+    .select({ id: ansatte.id, avdeling: ansatte.avdeling })
+    .from(ansatte)
+    .where(eq(ansatte.tenantId, TENANT));
+
+  if (alleProsjekter.length > 0 && alleAnsatte.length > 0) {
+    const iDag = new Date();
+    const timerader = [];
+
+    // To uker bakover, hverdager, varierte timetall.
+    for (let dagerSiden = 0; dagerSiden < 14; dagerSiden++) {
+      const d = new Date(iDag);
+      d.setUTCDate(d.getUTCDate() - dagerSiden);
+      const ukedag = d.getUTCDay();
+      if (ukedag === 0 || ukedag === 6) continue;
+      const dato = d.toISOString().slice(0, 10);
+
+      for (const [i, ansatt] of alleAnsatte.entries()) {
+        const prosjekt = alleProsjekter[(dagerSiden + i) % alleProsjekter.length];
+        if (!prosjekt) continue;
+        timerader.push({
+          tenantId: TENANT,
+          ansattId: ansatt.id,
+          prosjektId: prosjekt.id,
+          dato,
+          timer: String(6 + ((dagerSiden + i) % 3)),
+          kommentar: null,
+          status: "sendt" as const,
+          klientNokkel: `seed-timer-${dato}-${ansatt.id}`,
+        });
+      }
+    }
+
+    await db.insert(timeforinger).values(timerader).onConflictDoNothing();
+
+    // Tillegg med alle tre køstatusene, så sendekøen på dashbordet viser
+    // hvordan den faktisk ser ut når noe venter og noe har feilet.
+    const prisrader = await db
+      .select({ navn: prislinjer.navn, enhet: prislinjer.enhet, pris: prislinjer.pris, avdeling: prislinjer.avdeling })
+      .from(prislinjer)
+      .where(eq(prislinjer.tenantId, TENANT));
+
+    const statuser = ["sendt", "sendt", "sendt", "i_ko", "feilet"] as const;
+    const tilleggsrader = prisrader.slice(0, 10).map((pris, i) => {
+      const prosjekt =
+        alleProsjekter.find((p) => p.avdeling === pris.avdeling) ?? alleProsjekter[0]!;
+      const ansatt = alleAnsatte[i % alleAnsatte.length]!;
+      const status = statuser[i % statuser.length]!;
+      return {
+        tenantId: TENANT,
+        prosjektId: prosjekt.id,
+        ansattId: ansatt.id,
+        navn: pris.navn,
+        enhet: pris.enhet,
+        antall: String(1 + (i % 3)),
+        enhetspris: pris.pris,
+        status,
+        feilmelding: status === "feilet" ? "Perioden er låst i Tripletex" : null,
+        klientNokkel: `seed-tillegg-${i}`,
+      };
+    });
+
+    await db.insert(tillegg).values(tilleggsrader).onConflictDoNothing();
+  }
 
   console.log("Ferdig.");
   console.log(
