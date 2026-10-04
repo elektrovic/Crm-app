@@ -1,6 +1,6 @@
 import { krevRolle } from "@/lib/tilgang";
 import { iDag } from "@/lib/data/dagen";
-import { hentProsjektkort } from "@/lib/data/prosjekter";
+import { hentProsjektkort, hentSynkkjoringer } from "@/lib/data/prosjekter";
 import { hentMontorvalg } from "@/lib/data/kalender";
 import { AVDELINGER } from "@/db/schema";
 import { Sidetittel, Tomt } from "@/components/ui";
@@ -13,9 +13,10 @@ export default async function Prosjekter() {
   const okt = await krevRolle("leder");
   const idag = iDag();
 
-  const [kort, montorer] = await Promise.all([
+  const [kort, montorer, kjoringer] = await Promise.all([
     hentProsjektkort(okt, idag),
     hentMontorvalg(okt),
+    hentSynkkjoringer(okt),
   ]);
 
   // En leder ser sin egen avdeling, en admin ser alt — samme regel som
@@ -32,7 +33,15 @@ export default async function Prosjekter() {
         under="Åpne prosjekter fra Tripletex. Avsluttede faller ut av seg selv."
       />
 
-      <SynkNa />
+      <SynkNa
+        historikk={kjoringer.map((k) => ({
+          utloser: k.utloser,
+          start: k.start.toISOString(),
+          slutt: k.slutt?.toISOString() ?? null,
+          ok: k.ok,
+          feil: k.feil,
+        }))}
+      />
 
       {synlige.length === 0 ? (
         <Tomt tekst="Ingen åpne prosjekter. Kjør en synk, eller sjekk at avdelingen er satt riktig." />

@@ -971,3 +971,38 @@ export const medbring = pgTable(
   },
   (t) => [index("medbring_tildeling_idx").on(t.tenantId, t.tildelingId, t.sortering)],
 );
+
+/**
+ * Hver kjøring av synken, med utfallet.
+ *
+ * Synken gikk hver time uten å etterlate seg noe. Feilet den, sto det i en
+ * funksjonslogg hos Netlify — et sted den som eier systemet ikke ser, og
+ * som jeg ikke når i det hele tatt. En planlagt jobb som feiler stille er
+ * en jobb ingen kan stole på.
+ *
+ * Nå skriver hver kjøring en rad. At raden MANGLER er også et svar: da ble
+ * synken aldri kalt, og feilen ligger før appen — i planleggeren eller i
+ * noe som står foran den.
+ */
+export const synkkjoringer = pgTable(
+  "synkkjoringer",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+
+    /** «plan» når den planlagte funksjonen kalte, «manuell» når et menneske gjorde det. */
+    utloser: text("utloser").notNull(),
+    start: timestamp("start", { withTimezone: true }).defaultNow().notNull(),
+    slutt: timestamp("slutt", { withTimezone: true }),
+    ok: boolean("ok"),
+
+    /** Tallene fra kjøringen, slik de ble vist. */
+    resultat: jsonb("resultat"),
+    feil: text("feil"),
+
+    opprettet: timestamp("opprettet", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("synkkjoring_tid_idx").on(t.tenantId, t.start)],
+);

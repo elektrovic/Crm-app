@@ -21,7 +21,15 @@ type Resultat = {
  * svaret med en gang — og hele feilmeldingen fra Tripletex hvis det ikke
  * gikk, i stedet for «se serverloggen» på en logg man ikke når.
  */
-export function SynkNa() {
+export type Kjoring = {
+  utloser: string;
+  start: string;
+  slutt: string | null;
+  ok: boolean | null;
+  feil: string | null;
+};
+
+export function SynkNa({ historikk = [] }: { historikk?: Kjoring[] }) {
   const [jobber, setJobber] = useState(false);
   const [feil, setFeil] = useState<string | null>(null);
   const [resultat, setResultat] = useState<Resultat | null>(null);
@@ -76,6 +84,17 @@ export function SynkNa() {
 
           <Feilmelding tekst={feil} />
 
+          {historikk.length > 0 && (
+            <div style={{ borderTop: "1px solid var(--linje)", paddingTop: 10 }}>
+              <Etikett>Siste kjøringer</Etikett>
+              <div style={{ display: "grid", gap: 5, marginTop: 7 }}>
+                {historikk.map((k) => (
+                  <Kjoringslinje key={k.start} k={k} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {resultat && (
             <div style={{ display: "grid", gap: 7, fontSize: 13 }}>
               <Linje
@@ -119,6 +138,48 @@ function Linje({ merke, verdi }: { merke: string; verdi: string }) {
       <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right" }}>
         {verdi}
       </span>
+    </div>
+  );
+}
+
+function Kjoringslinje({ k }: { k: Kjoring }) {
+  const tid = new Intl.DateTimeFormat("nb-NO", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(k.start));
+
+  // Tre utfall, ikke to. En kjøring uten slutt ble avbrutt midtveis, og det
+  // er noe annet enn en som feilet med en melding.
+  const { tekst, farge } = !k.slutt
+    ? { tekst: "avbrutt", farge: "var(--rod)" }
+    : k.ok
+      ? { tekst: "ok", farge: "var(--gronn)" }
+      : { tekst: "feilet", farge: "var(--rod)" };
+
+  return (
+    <div style={{ display: "flex", gap: 10, alignItems: "baseline", fontSize: 12 }}>
+      <span style={{ fontFamily: "var(--font-mono)", color: "var(--dempet)" }}>{tid}</span>
+      <span style={{ color: "var(--svak)" }}>
+        {k.utloser === "plan" ? "planlagt" : "manuell"}
+      </span>
+      <span style={{ fontFamily: "var(--font-mono)", color: farge }}>{tekst}</span>
+      {k.feil && (
+        <span
+          title={k.feil}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            color: "var(--dempet)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {k.feil}
+        </span>
+      )}
     </div>
   );
 }

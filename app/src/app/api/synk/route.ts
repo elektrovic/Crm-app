@@ -16,7 +16,10 @@
  * står igjen til neste kjøring. Synken er trygg å kjøre om igjen.
  */
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
+import { db } from "@/db";
+import { synkkjoringer } from "@/db/schema";
 import { likeHemmeligheter } from "@/lib/krypto";
 import { TripletexFeil } from "@/lib/tripletex/client";
 import { synkAlt } from "@/lib/tripletex/synk";
@@ -28,13 +31,32 @@ import { synkAlt } from "@/lib/tripletex/synk";
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
-  const tenantId = await autoriser(request);
-  if (!tenantId) {
+  const adgang = await autoriser(request);
+  if (!adgang) {
     return NextResponse.json({ feil: "Ikke autorisert." }, { status: 401 });
+  }
+  const { tenantId, utloser } = adgang;
+
+  // Raden skrives FØR jobben, ikke etter. Krasjer kjøringen helt — minnet
+  // tar slutt, funksjonen blir drept på tidsbudsjettet — står den igjen
+  // uten sluttidspunkt. En kjøring uten slutt er et tydeligere spor enn
+  // ingen rad i det hele tatt.
+  const [kjoring] = await db
+    .insert(synkkjoringer)
+    .values({ tenantId, utloser })
+    .returning({ id: synkkjoringer.id });
+
+  async function avslutt(ok: boolean, felter: { resultat?: unknown; feil?: string }) {
+    if (!kjoring) return;
+    await db
+      .update(synkkjoringer)
+      .set({ slutt: new Date(), ok, resultat: felter.resultat ?? null, feil: felter.feil ?? null })
+      .where(eq(synkkjoringer.id, kjoring.id));
   }
 
   try {
     const resultat = await synkAlt(tenantId);
+    await avslutt(true, { resultat });
     return NextResponse.json(resultat);
   } catch (feil) {
     console.error("Synk mot Tripletex feilet", feil);
@@ -49,24 +71,27 @@ export async function POST(request: Request) {
         ? feil.detaljer.slice(0, 500)
         : undefined;
 
+    await avslutt(false, { feil: [melding, detaljer].filter(Boolean).join(" — ") });
     return NextResponse.json({ feil: melding, fraTripletex: detaljer }, { status: 502 });
   }
 }
 
 /**
- * Returnerer kunde-ID-en synken skal kjøre for, eller null.
+ * Returnerer hvem synken kjører for og hva som utløste den, eller null.
  *
  * Nøkkelen sammenlignes med en konstanttidsfunksjon — en vanlig `===` bruker
  * målbart kortere tid jo tidligere forskjellen ligger.
  */
-async function autoriser(request: Request): Promise<string | null> {
+type Adgang = { tenantId: string; utloser: "plan" | "manuell" };
+
+async function autoriser(request: Request): Promise<Adgang | null> {
   const header = request.headers.get("authorization");
   const nokkel = process.env.SYNK_NOKKEL;
 
   if (header?.startsWith("Bearer ") && nokkel) {
     const oppgitt = header.slice("Bearer ".length);
     if (likeHemmeligheter(oppgitt, nokkel)) {
-      return process.env.DEFAULT_TENANT_ID ?? "halland";
+      return { tenantId: process.env.DEFAULT_TENANT_ID ?? "halland", utloser: "plan" };
     }
     return null;
   }
@@ -74,5 +99,5 @@ async function autoriser(request: Request): Promise<string | null> {
   const okt = await auth();
   if (!okt?.user?.id) return null;
   if (okt.user.rolle === "montor") return null;
-  return okt.user.tenantId;
+  return { tenantId: okt.user.tenantId, utloser: "manuell" };
 }

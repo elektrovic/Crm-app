@@ -8,9 +8,9 @@
  * mister prosjektet sitt.
  */
 import "server-only";
-import { and, asc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { mangler, prosjekter, tildelinger, vedlegg } from "@/db/schema";
+import { mangler, prosjekter, synkkjoringer, tildelinger, vedlegg } from "@/db/schema";
 import type { Avdeling } from "@/db/schema";
 import type { Okt } from "../tilgang";
 
@@ -68,4 +68,35 @@ export async function hentProsjektkort(okt: Okt, fraDato: string): Promise<Prosj
     .from(prosjekter)
     .where(and(eq(prosjekter.tenantId, okt.tenantId), eq(prosjekter.aktiv, true)))
     .orderBy(asc(prosjekter.nummer));
+}
+
+export type Synkkjoring = {
+  utloser: string;
+  start: Date;
+  slutt: Date | null;
+  ok: boolean | null;
+  feil: string | null;
+};
+
+/**
+ * De siste kjøringene av synken.
+ *
+ * Vises til ledelsen fordi den timesvise jobben ellers er usynlig: den
+ * virker helt til noen oppdager at tallene er gamle. En kjøring uten
+ * sluttidspunkt betyr at den ble avbrutt midtveis — og ingen rad på en
+ * hel time betyr at planleggeren aldri kalte oss.
+ */
+export async function hentSynkkjoringer(okt: Okt, antall = 5): Promise<Synkkjoring[]> {
+  return db
+    .select({
+      utloser: synkkjoringer.utloser,
+      start: synkkjoringer.start,
+      slutt: synkkjoringer.slutt,
+      ok: synkkjoringer.ok,
+      feil: synkkjoringer.feil,
+    })
+    .from(synkkjoringer)
+    .where(eq(synkkjoringer.tenantId, okt.tenantId))
+    .orderBy(desc(synkkjoringer.start))
+    .limit(antall);
 }
