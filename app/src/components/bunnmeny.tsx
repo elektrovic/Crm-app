@@ -12,7 +12,7 @@ import { antallIKo, lyttPaKo } from "@/lib/offline/ko";
  */
 const PUNKTER = [
   { sti: "/hjem", navn: "Hjem", ikon: "H" },
-  { sti: "/kalender", navn: "Uke", ikon: "U" },
+  { sti: "/kalender", navn: "I dag", ikon: "D" },
   { sti: "/timer", navn: "Timer", ikon: "T" },
   { sti: "/biler", navn: "Biler", ikon: "B" },
   { sti: "/ko", navn: "Kø", ikon: "K" },

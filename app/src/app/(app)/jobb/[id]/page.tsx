@@ -16,8 +16,13 @@ export default async function MinJobb({ params }: { params: Promise<{ id: string
 
   return (
     <>
-      <Link href="/kalender" style={{ fontSize: 13, color: "var(--bla)", textDecoration: "none" }}>
-        ‹ Min uke
+      {/* Tilbake til dagen jobben står på, ikke til i dag. Åpnet man den
+          fra torsdag, er det torsdag man vil tilbake til. */}
+      <Link
+        href={`/kalender?dag=${jobb.dato}`}
+        style={{ fontSize: 13, color: "var(--bla)", textDecoration: "none" }}
+      >
+        ‹ Tilbake til dagen
       </Link>
       <Jobbkort jobb={jobb} kanRedigere={false} kanTaBilde />
     </>

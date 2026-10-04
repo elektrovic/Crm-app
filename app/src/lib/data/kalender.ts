@@ -11,7 +11,7 @@
  * ble bestilt: lederen ser på uka for å finne ut hvem som er hvor.
  */
 import "server-only";
-import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, lte } from "drizzle-orm";
 import { db } from "@/db";
 import {
   adkomst,
@@ -216,6 +216,123 @@ export async function hentMinUke(okt: Okt, mandag: string): Promise<Kalenderjobb
     eq(tildelinger.ansattId, okt.id),
   ]);
   return berik(okt, rader);
+}
+
+/**
+ * Én dag, med alt montøren trenger for å kjøre ut — uten å trykke seg inn.
+ *
+ * Dette er forskjellen fra ukelista. Der er hver jobb en lenke, og
+ * adressen, telefonnummeret og pakkelista ligger ett trykk unna hver sin
+ * vei. Klokka sju i bilen er ett trykk ett for mye: man ser på skjermen,
+ * ser ikke det man trengte, og ringer formannen i stedet.
+ *
+ * Her står alt på dagen. Det koster to spørringer ekstra, og de to er
+ * billigere enn telefonen.
+ */
+export type Dagsjobb = Kalenderjobb & {
+  adkomst: Adkomstinfo | null;
+  medbring: Pakkelinje[];
+};
+
+export type Adkomstinfo = {
+  nokkelkode: string | null;
+  kontaktperson: string | null;
+  kontakttelefon: string | null;
+  parkering: string | null;
+  merknad: string | null;
+};
+
+export async function hentMinDag(okt: Okt, dato: string): Promise<Dagsjobb[]> {
+  const rader = await hentRader(okt.tenantId, [
+    eq(tildelinger.dato, dato),
+    eq(tildelinger.ansattId, okt.id),
+  ]);
+  if (rader.length === 0) return [];
+
+  const beriket = await berik(okt, rader);
+
+  // Ett oppslag for hele dagen, ikke ett per jobb. Står man på tre jobber
+  // med én strek dekning, merkes forskjellen.
+  const [adk, pakke] = await Promise.all([
+    db
+      .select({
+        prosjektId: adkomst.prosjektId,
+        nokkelkode: adkomst.nokkelkode,
+        kontaktperson: adkomst.kontaktperson,
+        kontakttelefon: adkomst.kontakttelefon,
+        parkering: adkomst.parkering,
+        merknad: adkomst.merknad,
+      })
+      .from(adkomst)
+      .where(inArray(adkomst.prosjektId, [...new Set(beriket.map((r) => r.prosjektId))])),
+
+    db
+      .select({
+        id: medbring.id,
+        tildelingId: medbring.tildelingId,
+        tekst: medbring.tekst,
+        antall: medbring.antall,
+        enhet: medbring.enhet,
+        pakket: medbring.pakket,
+        mangelId: medbring.mangelId,
+      })
+      .from(medbring)
+      .where(
+        and(
+          eq(medbring.tenantId, okt.tenantId),
+          inArray(
+            medbring.tildelingId,
+            beriket.map((r) => r.tildelingId),
+          ),
+        ),
+      )
+      .orderBy(asc(medbring.sortering), asc(medbring.opprettet)),
+  ]);
+
+  const adkPer = new Map(adk.map(({ prosjektId, ...rest }) => [prosjektId, rest]));
+  const pakkePer = new Map<string, Pakkelinje[]>();
+  for (const l of pakke) {
+    const liste = pakkePer.get(l.tildelingId) ?? [];
+    liste.push({
+      id: l.id,
+      tekst: l.tekst,
+      antall: l.antall,
+      enhet: l.enhet,
+      pakket: l.pakket,
+      fraMangel: l.mangelId !== null,
+    });
+    pakkePer.set(l.tildelingId, liste);
+  }
+
+  return beriket.map((r) => ({
+    ...r,
+    adkomst: adkPer.get(r.prosjektId) ?? null,
+    medbring: pakkePer.get(r.tildelingId) ?? [],
+  }));
+}
+
+/**
+ * Neste dag montøren har noe satt opp på seg.
+ *
+ * Finnes fordi en tom dag ellers er en blindvei: man ser «ingen jobber»
+ * og vet ikke om det betyr fri, eller at lederen ikke har planlagt ennå.
+ * Står det «neste: tirsdag», er begge spørsmål besvart.
+ */
+export async function hentNesteJobbdag(okt: Okt, etterDato: string): Promise<string | null> {
+  const [rad] = await db
+    .select({ dato: tildelinger.dato })
+    .from(tildelinger)
+    .where(
+      and(
+        eq(tildelinger.tenantId, okt.tenantId),
+        eq(tildelinger.ansattId, okt.id),
+        gt(tildelinger.dato, etterDato),
+      ),
+    )
+    .orderBy(asc(tildelinger.dato))
+    .limit(1);
+
+  return rad?.dato ?? null;
 }
 
 export type Pakkelinje = {
