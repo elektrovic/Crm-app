@@ -41,11 +41,18 @@ export function Sidemeny({
     <>
       <style>{`
         .sidemeny { width: 232px; flex: none; }
+        .sidemeny-innhold { flex-direction: column; }
         .sidemeny-lenker { flex-direction: column; }
         @media (max-width: 860px) {
           .sidemeny { width: 100%; position: sticky; top: 0; z-index: 30; }
           .sidemeny-innhold { flex-direction: row; align-items: center; gap: 14px; }
-          .sidemeny-lenker { flex-direction: row; overflow-x: auto; }
+          /* min-width:0 — uten den nekter et fleksbarn å bli smalere enn
+             innholdet sitt, og lenkeraden dyttet hele sida ut i stedet for
+             å rulle inni seg selv. */
+          .sidemeny-lenker { flex-direction: row; overflow-x: auto; min-width: 0; }
+          /* Firmanavnet brøt over to linjer og spiste plassen menyen
+             trengte. Det står på logg-inn-sida uansett. */
+          .sidemeny-undertekst { display: none; }
           .sidemeny-bunn { display: none; }
         }
       `}</style>
@@ -61,17 +68,26 @@ export function Sidemeny({
       >
         <div
           className="sidemeny-innhold"
-          style={{ display: "flex", flexDirection: "column", gap: 24, flex: 1 }}
+          style={{ display: "flex", gap: 24, flex: 1, minWidth: 0 }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 6px" }}>
             <IkonFlis farge="var(--bla)" storrelse={30}>
               M
             </IkonFlis>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", letterSpacing: "-.01em" }}>
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 800,
+                  color: "#fff",
+                  letterSpacing: "-.01em",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 Montørappen
               </div>
               <div
+                className="sidemeny-undertekst"
                 style={{
                   fontFamily: "var(--font-mono)",
                   fontSize: 9.5,

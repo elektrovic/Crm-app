@@ -17,7 +17,14 @@ const PUNKTER = [
   { sti: "/ko", navn: "Kø", ikon: "K" },
 ];
 
-export function Bunnmeny() {
+/**
+ * Veien opp til ledelsesflaten. En leder er montør også — han fører timer
+ * og ser bilene som alle andre — så han må kunne gå begge veier. Uten
+ * denne var adminflaten bare tilgjengelig ved å skrive /admin for hånd.
+ */
+const LEDELSE = { sti: "/admin", navn: "Ledelse", ikon: "L" };
+
+export function Bunnmeny({ leder = false }: { leder?: boolean }) {
   const sti = usePathname();
   const [iKo, setIKo] = useState(0);
 
@@ -43,7 +50,7 @@ export function Bunnmeny() {
         zIndex: 40,
       }}
     >
-      {PUNKTER.map((p) => {
+      {(leder ? [...PUNKTER, LEDELSE] : PUNKTER).map((p) => {
         const aktiv = sti.startsWith(p.sti);
         return (
           <Link
@@ -55,12 +62,12 @@ export function Bunnmeny() {
               flexDirection: "column",
               alignItems: "center",
               gap: 4,
-              padding: "6px 16px",
+              padding: "6px 12px",
               borderRadius: 999,
               background: aktiv ? "var(--bla)" : "transparent",
               color: aktiv ? "#fff" : "var(--mork-dempet)",
               textDecoration: "none",
-              minWidth: 64,
+              minWidth: 56,
               position: "relative",
               transition: "background .15s ease",
             }}

@@ -4,6 +4,7 @@ import { Etikett, Kort } from "@/components/ui";
 import { db } from "@/db";
 import { ansatte } from "@/db/schema";
 import { DEMO_INNLOGGING } from "@/lib/demo";
+import { startside } from "@/lib/startside";
 import { eq } from "drizzle-orm";
 
 export default async function LoggInn({
@@ -12,7 +13,7 @@ export default async function LoggInn({
   searchParams: Promise<{ error?: string }>;
 }) {
   const okt = await auth();
-  if (okt?.user?.id) redirect("/hjem");
+  if (okt?.user) redirect(startside(okt.user.rolle));
 
   const { error } = await searchParams;
 
@@ -70,7 +71,7 @@ export default async function LoggInn({
       <form
         action={async () => {
           "use server";
-          await signIn("microsoft-entra-id", { redirectTo: "/hjem" });
+          await signIn("microsoft-entra-id", { redirectTo: "/" });
         }}
       >
         <button
@@ -107,7 +108,7 @@ export default async function LoggInn({
               key={b.epost}
               action={async () => {
                 "use server";
-                await signIn("demo", { epost: b.epost, redirectTo: "/hjem" });
+                await signIn("demo", { epost: b.epost, redirectTo: "/" });
               }}
             >
               <button

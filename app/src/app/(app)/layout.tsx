@@ -20,7 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       >
         {children}
       </main>
-      <Bunnmeny />
+      <Bunnmeny leder={okt.user.rolle !== "montor"} />
     </div>
   );
 }

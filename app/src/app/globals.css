@@ -126,3 +126,21 @@ a {
   outline-offset: 2px;
   border-radius: 6px;
 }
+
+/*
+ * Ledelsesflaten på telefon.
+ *
+ * Flaten er bygget som sidemeny + innhold ved siden av hverandre. Under
+ * 860px legger sidemenyen seg som en topplinje i stedet — men da må også
+ * ytterkassa snu, ellers står topplinja på 100 % bredde *ved siden av*
+ * innholdet, og hele sida blir nesten dobbelt så bred som skjermen. Det
+ * ga vannrett rulling og en «Dashboard»-knapp som lå halvveis utenfor.
+ */
+@media (max-width: 860px) {
+  .adminflate {
+    flex-direction: column;
+  }
+  .adminflate > main {
+    padding: 20px 16px 72px;
+  }
+}

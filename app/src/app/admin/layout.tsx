@@ -16,7 +16,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (okt.user.rolle === "montor") redirect("/hjem");
 
   return (
-    <div style={{ display: "flex", minHeight: "100dvh", background: "var(--flate)" }}>
+    <div
+      className="adminflate"
+      style={{ display: "flex", minHeight: "100dvh", background: "var(--flate)" }}
+    >
       <Sidemeny
         navn={okt.user.navn}
         rolle={okt.user.rolle}
