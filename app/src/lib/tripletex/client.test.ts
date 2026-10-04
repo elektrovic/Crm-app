@@ -19,7 +19,7 @@ test("JWT velges når den finnes, og sendes i kroppen", () => {
   assert.ok(!f.url.includes("ey."), "JWT lekket inn i URL-en");
   assert.deepEqual(JSON.parse(String(f.init.body)), {
     refreshToken: "ey.hemmelig.jwt",
-    ttlSeconds: 86400,
+    ttlSeconds: 28800,
   });
 });
 
@@ -103,4 +103,28 @@ test("uten TRIPLETEX_BASE_URL brukes produksjonsadressen", () => {
     f.url.startsWith("https://tripletex.no/v2/"),
     `pekte på feil vert: ${f.url}`,
   );
+});
+
+test("levetiden holder seg under Tripletex sitt tak", () => {
+  // Tripletex svarer 422 «Kan ikke være over 28800» på arg0 hvis vi ber om
+  // mer. Vi ba om et døgn og fikk nettopp det svaret.
+  const f = byggSesjonsforesporsel({ ...BASE, TRIPLETEX_JWT: "ey.x" }, NAA);
+  const { ttlSeconds } = JSON.parse(String(f.init.body)) as { ttlSeconds: number };
+  assert.ok(ttlSeconds <= 28800, `ba om ${ttlSeconds} sekunder, taket er 28800`);
+  assert.ok(ttlSeconds > 0);
+});
+
+test("anslått utløp følger levetiden vi faktisk ba om", () => {
+  const f = byggSesjonsforesporsel({ ...BASE, TRIPLETEX_JWT: "ey.x" }, NAA);
+  assert.equal(f.antattUtloper, NAA + 28800 * 1000);
+});
+
+test("den gamle veien beholder sitt døgn", () => {
+  // Taket gjelder ttlSeconds på JWT-veien. Den gamle ber om en dato.
+  const f = byggSesjonsforesporsel(
+    { ...BASE, TRIPLETEX_CONSUMER_TOKEN: "c", TRIPLETEX_EMPLOYEE_TOKEN: "e" },
+    NAA,
+  );
+  assert.equal(new URL(f.url).searchParams.get("expirationDate"), "2026-10-05");
+  assert.equal(f.antattUtloper, NAA + 86400 * 1000);
 });

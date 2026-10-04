@@ -73,12 +73,22 @@ let bufretSesjon: Sesjon | null = null;
 const FORNY_FOR_MS = 60 * 60 * 1000; // 1 time
 
 /**
- * Hvor lenge vi ber om å få ha sesjonen.
+ * Hvor lenge en JWT-sesjon får vare.
  *
- * Ett døgn: kort nok til at et lekket sesjonstoken har begrenset verdi,
- * langt nok til at vi slipper å fornye midt i en arbeidsdag.
+ * 28800 sekunder — åtte timer — er Tripletex sitt tak. Ber vi om mer,
+ * svarer de 422 med «Kan ikke være over 28800» på feltet arg0. Vi ba om et
+ * døgn, og fikk nettopp det svaret.
+ *
+ * Åtte timer er dessuten passe: omtrent en arbeidsdag, og kort nok til at
+ * et lekket sesjonstoken har begrenset verdi.
  */
-const LEVETID_SEKUNDER = 24 * 60 * 60;
+const JWT_LEVETID_SEKUNDER = 8 * 60 * 60;
+
+/**
+ * Den gamle veien ber om en utløpsDATO, ikke et antall sekunder, og har
+ * ikke samme tak. Ett døgn er fint der.
+ */
+const GAMMEL_LEVETID_SEKUNDER = 24 * 60 * 60;
 
 export type Sesjonsforesporsel = {
   url: string;
@@ -102,7 +112,6 @@ export function byggSesjonsforesporsel(
   naa = Date.now(),
 ): Sesjonsforesporsel {
   const base = miljo.TRIPLETEX_BASE_URL ?? STANDARD_BASE;
-  const antattUtloper = naa + LEVETID_SEKUNDER * 1000;
 
   const jwt = miljo.TRIPLETEX_JWT?.trim();
   if (jwt) {
@@ -114,10 +123,10 @@ export function byggSesjonsforesporsel(
         // JWT-en sendes i kroppen, ikke i adressen. Det er forskjellen fra
         // den gamle veien, og grunnen til at den ikke havner i noen logg
         // over forespurte URL-er.
-        body: JSON.stringify({ refreshToken: jwt, ttlSeconds: LEVETID_SEKUNDER }),
+        body: JSON.stringify({ refreshToken: jwt, ttlSeconds: JWT_LEVETID_SEKUNDER }),
       },
       maate: "jwt",
-      antattUtloper,
+      antattUtloper: naa + JWT_LEVETID_SEKUNDER * 1000,
     };
   }
 
@@ -131,12 +140,18 @@ export function byggSesjonsforesporsel(
     );
   }
 
+  const gammeltUtlop = naa + GAMMEL_LEVETID_SEKUNDER * 1000;
   const url = new URL(`${base}/token/session/:create`);
   url.searchParams.set("consumerToken", consumerToken);
   url.searchParams.set("employeeToken", employeeToken);
-  url.searchParams.set("expirationDate", new Date(antattUtloper).toISOString().slice(0, 10));
+  url.searchParams.set("expirationDate", new Date(gammeltUtlop).toISOString().slice(0, 10));
 
-  return { url: url.toString(), init: { method: "PUT" }, maate: "consumer+employee", antattUtloper };
+  return {
+    url: url.toString(),
+    init: { method: "PUT" },
+    maate: "consumer+employee",
+    antattUtloper: gammeltUtlop,
+  };
 }
 
 /**
