@@ -74,7 +74,9 @@ Alle ligger forklart i `.env.example`. De tre som må på plass før noe virker:
 - `AUTH_MICROSOFT_ENTRA_ID_*` — fra App registrations i Entra ID.
   Redirect URI: `https://<domene>/api/auth/callback/microsoft-entra-id`
 - `DATABASE_URL` — PostgreSQL, i EU-region i produksjon.
-- `TRIPLETEX_CONSUMER_TOKEN` og `TRIPLETEX_EMPLOYEE_TOKEN`.
+- `TRIPLETEX_JWT` — ett token, laget i Tripletex under integrasjonsmodulen.
+  Alternativt `TRIPLETEX_CONSUMER_TOKEN` + `TRIPLETEX_EMPLOYEE_TOKEN`, som er
+  den gamle veien. Er JWT-en satt, brukes den.
 
 ABAX-variablene kan stå tomme; da vises bilkartet med en feilmelding og
 timeforslagene uteblir, men resten av appen virker.

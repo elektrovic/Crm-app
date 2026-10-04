@@ -190,7 +190,7 @@ Dette er ventet på dette stadiet. Ingenting av det er ødelagt.
 
 | | Hvorfor |
 |---|---|
-| Prosjekter og timer synkes ikke | Tripletex-tokenene er ikke lagt inn |
+| Prosjekter og timer synkes ikke | `TRIPLETEX_JWT` er ikke lagt inn |
 | Bilkartet er tomt | ABAX-nøklene er ikke lagt inn |
 | SMS-knappen vises ikke | `SMS_LEVERANDOR` er ikke satt |
 | AI-triagering vises ikke | `AI_LEVERANDOR` er ikke satt |
@@ -296,3 +296,48 @@ where schemaname='public' group by tableowner;
 
 Settes databasen opp på nytt et annet sted, er dette verdt å gjøre med en
 gang — ikke vente til en migrering feiler.
+
+## Tripletex: ett token, ikke to
+
+Tripletex endret dette **25. juni 2026**. Har du med en eldre veiledning å
+gjøre, står det at du må søke om et consumer token og vente på godkjenning.
+Det trenger du ikke lenger.
+
+Har dere integrasjonsmodulen, lager dere tokenet selv i Tripletex. Det er et
+JWT, og det er det eneste dere trenger.
+
+### Legg det inn
+
+I Netlify under *Site configuration → Environment variables*:
+
+```
+TRIPLETEX_JWT = <tokenet fra Tripletex>
+```
+
+Huk av **«Contains secret values»**. Da vises verdien ikke i grensesnittet
+igjen, havner ikke i byggeloggene, og kan ikke leses ut etterpå.
+
+Miljøvariabler slår først inn ved **neste bygg**. Trigger en utrulling etter
+at du har lagt den inn, ellers skjer ingenting.
+
+### Hvordan appen bruker det
+
+JWT-en er et *refresh token*. Den byttes inn i en kortlivet sesjon:
+
+```
+POST /token/session/:createFromRefreshToken
+{ "refreshToken": "<jwt>", "ttlSeconds": 86400 }
+```
+
+Sesjonen caches i minnet til den nærmer seg utløp, og alle videre kall
+bruker `Authorization: Basic base64("0:<sessionToken>")` — det samme som før.
+
+Legg merke til at JWT-en sendes i **kroppen**, ikke i adressen. Den gamle
+veien la tokenene i spørrestrengen, der de kan havne i proxy-logger. Det er
+en reell forbedring, ikke bare en omskriving.
+
+### Den gamle veien virker fortsatt
+
+`TRIPLETEX_CONSUMER_TOKEN` + `TRIPLETEX_EMPLOYEE_TOKEN` brukes hvis
+`TRIPLETEX_JWT` ikke er satt. Et oppsett som virker skal ikke brytes av at
+vi la til noe nytt. Er begge satt, vinner JWT-en.

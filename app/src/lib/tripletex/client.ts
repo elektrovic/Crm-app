@@ -1,16 +1,29 @@
 /**
  * Tripletex-klient.
  *
- * Autentisering skjer i to trinn, slik Tripletex krever:
+ * Autentisering skjer i to trinn: et langlivet token byttes inn i en
+ * kortlivet sesjon, og sesjonen brukes på alle videre kall.
  *
- *   1. PUT /token/session/:create med consumerToken + employeeToken gir en
- *      session token med utløpsdato.
- *   2. Alle videre kall sender `Authorization: Basic base64("0:<sessionToken>")`.
- *      Brukernavnet er companyId; 0 (eller blank) betyr selskapet som eier
- *      employee token-en.
+ * Det finnes to veier inn til trinn 1, og vi støtter begge:
  *
- * Session token-en caches i minnet til den nærmer seg utløp, slik at vi ikke
- * lager en ny for hvert eneste API-kall.
+ *   JWT (fra 25. juni 2026, for interne integrasjoner)
+ *     POST /token/session/:createFromRefreshToken
+ *     med JSON-kroppen { refreshToken, ttlSeconds }
+ *     Ett token, opprettet i Tripletex selv — ingen søknad, ingen venting.
+ *
+ *   Consumer + employee (den gamle veien)
+ *     PUT /token/session/:create?consumerToken=…&employeeToken=…
+ *     To tokens, der consumer-tokenet hører til en registrert integrasjon.
+ *
+ * Trinn 2 er likt uansett: `Authorization: Basic base64("0:<sessionToken>")`.
+ * Brukernavnet er companyId; 0 betyr selskapet som eier tokenet.
+ *
+ * Er TRIPLETEX_JWT satt, brukes den. Det er den veien nye oppsett skal gå.
+ * Den gamle står igjen fordi et oppsett som virker ikke skal brytes av at
+ * vi la til noe nytt.
+ *
+ * Sesjonen caches i minnet til den nærmer seg utløp, så vi ikke lager en ny
+ * for hvert eneste API-kall.
  *
  * MERK: Kjøres alltid på server. Tokenene skal aldri nå en telefon.
  */
@@ -43,49 +56,116 @@ let bufretSesjon: Sesjon | null = null;
 /** Marginen gjør at vi fornyer før tokenet faktisk går ut. */
 const FORNY_FOR_MS = 60 * 60 * 1000; // 1 time
 
+/**
+ * Hvor lenge vi ber om å få ha sesjonen.
+ *
+ * Ett døgn: kort nok til at et lekket sesjonstoken har begrenset verdi,
+ * langt nok til at vi slipper å fornye midt i en arbeidsdag.
+ */
+const LEVETID_SEKUNDER = 24 * 60 * 60;
+
+export type Sesjonsforesporsel = {
+  url: string;
+  init: RequestInit;
+  /** Hvilken vei inn som ble brukt, til feilmeldinger og logg. */
+  maate: "jwt" | "consumer+employee";
+  /** Når sesjonen senest går ut, hvis svaret ikke sier noe annet. */
+  antattUtloper: number;
+};
+
+/**
+ * Setter sammen kallet som skaffer en sesjon.
+ *
+ * Skilt ut fra selve nettverkskallet så den kan prøves uten å snakke med
+ * Tripletex — det er her det er lett å ta feil, og vanskelig å oppdage det.
+ */
+export function byggSesjonsforesporsel(
+  // Bare nøklene vi faktisk leser. En løsere type her gjør funksjonen
+  // prøvbar uten å late som vi har et helt prosessmiljø.
+  miljo: Record<string, string | undefined> = process.env,
+  naa = Date.now(),
+): Sesjonsforesporsel {
+  const base = miljo.TRIPLETEX_BASE_URL ?? "https://api.tripletex.io/v2";
+  const antattUtloper = naa + LEVETID_SEKUNDER * 1000;
+
+  const jwt = miljo.TRIPLETEX_JWT?.trim();
+  if (jwt) {
+    return {
+      url: `${base}/token/session/:createFromRefreshToken`,
+      init: {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // JWT-en sendes i kroppen, ikke i adressen. Det er forskjellen fra
+        // den gamle veien, og grunnen til at den ikke havner i noen logg
+        // over forespurte URL-er.
+        body: JSON.stringify({ refreshToken: jwt, ttlSeconds: LEVETID_SEKUNDER }),
+      },
+      maate: "jwt",
+      antattUtloper,
+    };
+  }
+
+  const consumerToken = miljo.TRIPLETEX_CONSUMER_TOKEN;
+  const employeeToken = miljo.TRIPLETEX_EMPLOYEE_TOKEN;
+  if (!consumerToken || !employeeToken) {
+    throw new TripletexFeil(
+      "Tripletex mangler nøkler. Sett TRIPLETEX_JWT (anbefalt), eller " +
+        "TRIPLETEX_CONSUMER_TOKEN og TRIPLETEX_EMPLOYEE_TOKEN.",
+      500,
+    );
+  }
+
+  const url = new URL(`${base}/token/session/:create`);
+  url.searchParams.set("consumerToken", consumerToken);
+  url.searchParams.set("employeeToken", employeeToken);
+  url.searchParams.set("expirationDate", new Date(antattUtloper).toISOString().slice(0, 10));
+
+  return { url: url.toString(), init: { method: "PUT" }, maate: "consumer+employee", antattUtloper };
+}
+
+/**
+ * Plukker sesjonstokenet ut av svaret.
+ *
+ * Tripletex pakker svar i `{ value: … }`, men de to endepunktene har ikke
+ * nødvendigvis samme form inni. Vi leser bredt heller enn å låse oss til én
+ * variant — et token vi ikke fant er en 502 med svaret vedlagt, ikke en
+ * udefinert verdi som velter et sted lenger nede.
+ */
+export function lesSesjonssvar(data: unknown, antattUtloper: number): Sesjon {
+  const v = (data as { value?: unknown })?.value ?? data;
+  const felt = v as { token?: unknown; expirationDate?: unknown };
+
+  const token = typeof felt?.token === "string" ? felt.token : null;
+  if (!token) {
+    throw new TripletexFeil("Tripletex svarte uten session token.", 502, data);
+  }
+
+  // Sier svaret når det går ut, stoler vi på det framfor vårt eget anslag.
+  const oppgitt =
+    typeof felt.expirationDate === "string" ? Date.parse(felt.expirationDate) : NaN;
+
+  return { token, utloper: Number.isNaN(oppgitt) ? antattUtloper : oppgitt };
+}
+
 async function hentSessionToken(): Promise<string> {
   const naa = Date.now();
   if (bufretSesjon && bufretSesjon.utloper - FORNY_FOR_MS > naa) {
     return bufretSesjon.token;
   }
 
-  const consumerToken = process.env.TRIPLETEX_CONSUMER_TOKEN;
-  const employeeToken = process.env.TRIPLETEX_EMPLOYEE_TOKEN;
-  if (!consumerToken || !employeeToken) {
-    throw new TripletexFeil(
-      "TRIPLETEX_CONSUMER_TOKEN eller TRIPLETEX_EMPLOYEE_TOKEN mangler i miljøet.",
-      500,
-    );
-  }
+  const { url, init, maate, antattUtloper } = byggSesjonsforesporsel(process.env, naa);
 
-  // Tripletex krever en utløpsdato. Vi ber om ett døgn av gangen — kort nok
-  // til at et lekket token har begrenset verdi, langt nok til å slippe
-  // fornying midt i en arbeidsdag.
-  const utloper = new Date(naa + 24 * 60 * 60 * 1000);
-  const expirationDate = utloper.toISOString().slice(0, 10);
-
-  const url = new URL(`${BASE}/token/session/:create`);
-  url.searchParams.set("consumerToken", consumerToken);
-  url.searchParams.set("employeeToken", employeeToken);
-  url.searchParams.set("expirationDate", expirationDate);
-
-  const svar = await fetch(url, { method: "PUT", cache: "no-store" });
+  const svar = await fetch(url, { ...init, cache: "no-store" });
   if (!svar.ok) {
     throw new TripletexFeil(
-      `Klarte ikke å opprette Tripletex-sesjon (${svar.status}).`,
+      `Klarte ikke å opprette Tripletex-sesjon via ${maate} (${svar.status}).`,
       svar.status,
       await svar.text().catch(() => undefined),
     );
   }
 
-  const data = (await svar.json()) as { value?: { token?: string } };
-  const token = data.value?.token;
-  if (!token) {
-    throw new TripletexFeil("Tripletex svarte uten session token.", 502, data);
-  }
-
-  bufretSesjon = { token, utloper: utloper.getTime() };
-  return token;
+  bufretSesjon = lesSesjonssvar(await svar.json(), antattUtloper);
+  return bufretSesjon.token;
 }
 
 /** Nullstiller den bufrede sesjonen, brukt når Tripletex svarer 401. */

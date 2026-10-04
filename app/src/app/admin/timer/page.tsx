@@ -22,7 +22,7 @@ export default async function Timer() {
         { hva: "timeføringer", antall: n.timeforinger },
         { hva: "aktiviteter fra Tripletex", antall: n.aktiviteter },
       ]}
-      avhenger="Tripletex-tokener for å kunne sende og lese tilbake."
+      avhenger="TRIPLETEX_JWT, for å kunne sende og lese tilbake."
     />
   );
 }
