@@ -21,7 +21,6 @@ import type { Rolle } from "@/db/schema";
 const PUNKTER = [
   { sti: "/admin", navn: "Dashboard", eksakt: true, bygget: true },
   { sti: "/admin/crm", navn: "Kunder og henvendelser", bygget: true },
-  { sti: "/admin/bemanning", navn: "Bemanning", bygget: true },
   { sti: "/admin/prosjekter", navn: "Prosjekter", bygget: true },
   { sti: "/admin/timer", navn: "Timer", bygget: false },
   { sti: "/admin/tilleggssalg", navn: "Tilleggssalg", bygget: false },

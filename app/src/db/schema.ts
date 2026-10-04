@@ -86,7 +86,7 @@ export const ansatte = pgTable(
     rolle: text("rolle").$type<Rolle>().notNull().default("montor"),
     avdeling: text("avdeling").$type<Avdeling>().notNull(),
 
-    /** Fargekode og initialer styres av ledelsen under Admin → Bemanning. */
+    /** Fargekode og initialer styres av ledelsen under Admin → Brukere og roller. */
     farge: text("farge").notNull().default("#2563EB"),
     initialer: text("initialer").notNull(),
 
@@ -211,7 +211,7 @@ export const mangler = pgTable(
 
 /**
  * Hvem som skal hvor, hvilken dag. Grunnlaget for «Din dag» i appen og for
- * uke-rutenettet under Admin → Bemanning.
+ * uke-rutenettet under Admin → Kalender.
  *
  * En montør ser bare sine egne rader. Det er ikke bare et visningsvalg:
  * spørringen filtreres i backend, slik at han aldri får kollegaenes jobber

@@ -35,6 +35,14 @@ const Endring = z.object({
   fraKl: Klokke,
   tilKl: Klokke,
   notat: z.string().max(2000).nullish(),
+  /**
+   * Flytting i rutenettet: ny dag, ny montør, eller begge.
+   *
+   * Står de tomme, blir jobben der den er. Da kan samme kall brukes til
+   * å bare rette klokkeslettet, uten at den flytter seg utilsiktet.
+   */
+  dato: Dato.optional(),
+  ansattId: z.uuid().optional(),
   /** Sann sletter tildelingen. Pakkelista følger med. */
   slett: z.boolean().optional(),
 });
@@ -132,10 +140,26 @@ export const PATCH = endepunkt(Endring, async ({ okt, data, request }) => {
     return NextResponse.json({ slettet: true });
   }
 
+  // Flyttes jobben til en annen montør, må den montøren finnes, være
+  // aktiv og høre til oss. En ID fra nettleseren er ikke et bevis.
+  if (data.ansattId && data.ansattId !== fraFor.ansattId) {
+    const montor = await db.query.ansatte.findFirst({
+      where: and(
+        eq(ansatte.id, data.ansattId),
+        eq(ansatte.tenantId, okt.tenantId),
+        eq(ansatte.aktiv, true),
+      ),
+      columns: { id: true },
+    });
+    if (!montor) return NextResponse.json({ feil: "Ukjent montør." }, { status: 400 });
+  }
+
   const endringer = {
     fraKl: data.fraKl ?? null,
     tilKl: data.tilKl ?? null,
     notat: data.notat ?? null,
+    ...(data.dato ? { dato: data.dato } : {}),
+    ...(data.ansattId ? { ansattId: data.ansattId } : {}),
   };
   await db.update(tildelinger).set(endringer).where(eq(tildelinger.id, fraFor.id));
 
@@ -143,7 +167,13 @@ export const PATCH = endepunkt(Endring, async ({ okt, data, request }) => {
     handling: "tildeling.endret",
     tabell: "tildelinger",
     radId: fraFor.id,
-    for: { fraKl: fraFor.fraKl, tilKl: fraFor.tilKl, notat: fraFor.notat },
+    for: {
+      fraKl: fraFor.fraKl,
+      tilKl: fraFor.tilKl,
+      notat: fraFor.notat,
+      dato: fraFor.dato,
+      ansattId: fraFor.ansattId,
+    },
     etter: endringer,
     ipAdresse: ipFra(request),
   });

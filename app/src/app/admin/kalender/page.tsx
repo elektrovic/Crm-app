@@ -5,7 +5,7 @@ import { mandagen } from "@/lib/uke";
 import { hentMontorvalg, hentProsjektvalg, hentUkeplan, sondagen } from "@/lib/data/kalender";
 import { Etikett, Sidetittel, Tomt } from "@/components/ui";
 import { Ukerutenett } from "./ukerutenett";
-import { NyTildeling } from "./ny-tildeling";
+import { KopierUke } from "./kopier-uke";
 
 export const metadata = { title: "Kalender · Montørappen" };
 
@@ -55,8 +55,8 @@ export default async function Kalender({
         tittel="Kalender"
         under={
           okt.rolle === "admin"
-            ? "Alle avdelinger. Fargen følger montøren."
-            : `${okt.avdeling}. Fargen følger montøren.`
+            ? "Alle avdelinger. Trykk i en rute for å sette opp jobben der."
+            : `${okt.avdeling}. Trykk i en rute for å sette opp jobben der.`
         }
       />
 
@@ -87,22 +87,19 @@ export default async function Kalender({
           </Link>
         </div>
 
-        <NyTildeling
-          montorer={synlige.map((m) => ({ id: m.id, navn: m.navn, avdeling: m.avdeling }))}
-          prosjekter={prosjekter.map((p) => ({
-            id: p.id,
-            navn: p.navn,
-            nummer: p.nummer,
-            avdeling: p.avdeling,
-          }))}
-          standarddato={iDag()}
-        />
+        <KopierUke mandag={mandag} />
       </div>
 
       {synlige.length === 0 ? (
         <Tomt tekst="Ingen aktive montører i denne avdelingen." />
       ) : (
-        <Ukerutenett mandag={mandag} montorer={synlige} jobber={jobber} />
+        <Ukerutenett
+          mandag={mandag}
+          montorer={synlige}
+          jobber={jobber}
+          iDag={iDag()}
+          prosjekter={prosjekter.map((p) => ({ id: p.id, nummer: p.nummer, navn: p.navn }))}
+        />
       )}
 
       <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
