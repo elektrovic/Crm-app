@@ -162,7 +162,7 @@ function Kjoringslinje({ k }: { k: Kjoring }) {
     <div style={{ display: "flex", gap: 10, alignItems: "baseline", fontSize: 12 }}>
       <span style={{ fontFamily: "var(--font-mono)", color: "var(--dempet)" }}>{tid}</span>
       <span style={{ color: "var(--svak)" }}>
-        {k.utloser === "plan" ? "planlagt" : "manuell"}
+        {k.utloser === "plan" ? "planlagt" : k.utloser === "besok" ? "ved besøk" : "manuell"}
       </span>
       <span style={{ fontFamily: "var(--font-mono)", color: farge }}>{tekst}</span>
       {k.feil && (

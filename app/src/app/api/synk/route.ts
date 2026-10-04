@@ -16,7 +16,7 @@
  * står igjen til neste kjøring. Synken er trygg å kjøre om igjen.
  */
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { synkkjoringer } from "@/db/schema";
@@ -30,6 +30,9 @@ import { synkAlt } from "@/lib/tripletex/synk";
  */
 export const maxDuration = 300;
 
+/** Hvor ofte synken får gå når den utløses av besøk. */
+const TIME_I_MS = 60 * 60 * 1000;
+
 export async function POST(request: Request) {
   const adgang = await autoriser(request);
   if (!adgang) {
@@ -41,9 +44,37 @@ export async function POST(request: Request) {
   // tar slutt, funksjonen blir drept på tidsbudsjettet — står den igjen
   // uten sluttidspunkt. En kjøring uten slutt er et tydeligere spor enn
   // ingen rad i det hele tatt.
+  // «Bare hvis den er forfalt»: utløses av at noen åpner portalen, ikke av
+  // en planlegger. Sperren ligger her og ikke i nettleseren, fordi ti
+  // faner som åpnes samtidig ellers ville startet ti synker.
+  const url = new URL(request.url);
+  const forfaltsjekk = url.searchParams.get("hvisForfalt") === "1";
+  if (forfaltsjekk) {
+    const [siste] = await db
+      .select({ start: synkkjoringer.start, slutt: synkkjoringer.slutt })
+      .from(synkkjoringer)
+      .where(eq(synkkjoringer.tenantId, tenantId))
+      .orderBy(desc(synkkjoringer.start))
+      .limit(1);
+
+    if (siste) {
+      const alder = Date.now() - siste.start.getTime();
+      // Under en time siden sist: ingenting å gjøre.
+      if (alder < TIME_I_MS) {
+        return NextResponse.json({ hoppet: "nylig", alderMinutter: Math.round(alder / 60000) });
+      }
+      // Startet, men aldri avsluttet, og fortsatt fersk: en annen kjøring
+      // er trolig i gang. To samtidige synker mot Tripletex er sløsing i
+      // beste fall.
+      if (!siste.slutt && alder < 10 * 60 * 1000) {
+        return NextResponse.json({ hoppet: "pågår" });
+      }
+    }
+  }
+
   const [kjoring] = await db
     .insert(synkkjoringer)
-    .values({ tenantId, utloser })
+    .values({ tenantId, utloser: forfaltsjekk && utloser === "manuell" ? "besok" : utloser })
     .returning({ id: synkkjoringer.id });
 
   async function avslutt(ok: boolean, felter: { resultat?: unknown; feil?: string }) {
@@ -82,7 +113,14 @@ export async function POST(request: Request) {
  * Nøkkelen sammenlignes med en konstanttidsfunksjon — en vanlig `===` bruker
  * målbart kortere tid jo tidligere forskjellen ligger.
  */
-type Adgang = { tenantId: string; utloser: "plan" | "manuell" };
+/**
+ * Hvem satte i gang synken.
+ *
+ * «besok» er ikke det samme som «manuell»: ingen trykket, men et menneske
+ * var innom. Skillet er verdt en egen verdi, fordi det er loggen man leser
+ * når man lurer på hvorfor tallene er gamle.
+ */
+type Adgang = { tenantId: string; utloser: "plan" | "manuell" | "besok" };
 
 async function autoriser(request: Request): Promise<Adgang | null> {
   const header = request.headers.get("authorization");

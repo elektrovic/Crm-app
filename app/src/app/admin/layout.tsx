@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { Sidemeny } from "./sidemeny";
 import { Hurtighenvendelse } from "./hurtighenvendelse";
+import { SynkVedBesok } from "./synk-ved-besok";
 
 /**
  * Admin-flaten.
@@ -42,6 +43,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       {/* Fast på alle ledersider: telefonen ringer mens du står i noe annet. */}
       <Hurtighenvendelse />
+
+      {/* Henter fra Tripletex når noen er innom, høyst én gang i timen. */}
+      <SynkVedBesok />
     </div>
   );
 }
