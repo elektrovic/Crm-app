@@ -17,6 +17,7 @@ import {
   oppfolginger,
   prosjekter,
   reklamasjoner,
+  samtaler,
   type Kanal,
   type PipelineTrinn,
 } from "@/db/schema";
@@ -506,7 +507,14 @@ export async function hentStilleKunder(
 
 export type Tidslinjehendelse = {
   id: string;
-  slag: "henvendelse" | "prosjekt" | "reklamasjon" | "garanti" | "oppfolging" | "notat";
+  slag:
+    | "henvendelse"
+    | "prosjekt"
+    | "reklamasjon"
+    | "garanti"
+    | "oppfolging"
+    | "notat"
+    | "samtale";
   dato: Date;
   tittel: string;
   detalj: string | null;
@@ -522,6 +530,7 @@ const FARGE: Record<Tidslinjehendelse["slag"], string> = {
   garanti: "#A855F7",
   oppfolging: "#F97316",
   notat: "#64748B",
+  samtale: "#0EA5E9",
 };
 
 /**
@@ -543,7 +552,7 @@ export async function hentKundetidslinje(
 ): Promise<Tidslinjehendelse[]> {
   const t = okt.tenantId;
 
-  const [hv, pr, rek, gar, opp, hist] = await Promise.all([
+  const [hv, pr, rek, gar, opp, hist, sam] = await Promise.all([
     db
       .select({
         id: henvendelser.id,
@@ -607,6 +616,16 @@ export async function hentKundetidslinje(
       })
       .from(kundehistorikk)
       .where(and(eq(kundehistorikk.tenantId, t), eq(kundehistorikk.kundeId, kundeId))),
+
+    db
+      .select({
+        id: samtaler.id,
+        tittel: samtaler.tittel,
+        startet: samtaler.startet,
+        sammendrag: samtaler.sammendrag,
+      })
+      .from(samtaler)
+      .where(and(eq(samtaler.tenantId, t), eq(samtaler.kundeId, kundeId))),
   ]);
 
   const ut: Tidslinjehendelse[] = [
@@ -673,6 +692,19 @@ export async function hentKundetidslinje(
       detalj: null,
       farge: h.farge || FARGE.notat,
       lenke: null,
+    })),
+
+    // Samtalene fra Pocket. De er med her fordi en telefonsamtale er den
+    // vanligste hendelsen i et kundeforhold og den eneste som ellers ikke
+    // setter spor noe sted.
+    ...sam.map((s) => ({
+      id: s.id,
+      slag: "samtale" as const,
+      dato: s.startet,
+      tittel: s.tittel ?? "Telefonsamtale",
+      detalj: s.sammendrag,
+      farge: FARGE.samtale,
+      lenke: "/admin/crm/samtaler",
     })),
   ];
 

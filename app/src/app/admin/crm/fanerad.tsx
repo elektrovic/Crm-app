@@ -7,6 +7,7 @@ const FANER = [
   { sti: "/admin/crm", navn: "I dag", eksakt: true },
   { sti: "/admin/crm/pipeline", navn: "Henvendelser" },
   { sti: "/admin/crm/kunder", navn: "Kunder" },
+  { sti: "/admin/crm/samtaler", navn: "Samtaler" },
   { sti: "/admin/crm/reklamasjoner", navn: "Reklamasjoner" },
   { sti: "/admin/crm/garanti", navn: "Garanti og gjenkjøp" },
   { sti: "/admin/crm/uka", navn: "Uka" },

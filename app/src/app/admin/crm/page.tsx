@@ -6,6 +6,7 @@ import {
   hentStilleKunder,
   hentUtenNesteSteg,
 } from "@/lib/data/crm";
+import { hentSamtaletall } from "@/lib/data/samtaler";
 import { iDag } from "@/lib/data/dagen";
 import { sorterOppfolginger, tellFrister } from "@/lib/crm/frister";
 import { Celle, Etikett, Kort, Pille, Tabell, visDato } from "@/components/ui";
@@ -23,18 +24,21 @@ export const metadata = { title: "Oppfølging · CRM" };
 export default async function Oppfolging() {
   const okt = await krevRolle("leder");
   const dato = iDag();
-  const [alle, ansatte, kunder, utenNesteSteg, stille] = await Promise.all([
+  const [alle, ansatte, kunder, utenNesteSteg, stille, samtaletall] = await Promise.all([
     hentOppfolginger(okt),
     hentAnsattvalg(okt),
     hentKundevalg(okt),
     hentUtenNesteSteg(okt, dato),
     hentStilleKunder(okt),
+    hentSamtaletall(okt),
   ]);
   const rader = sorterOppfolginger(alle, dato);
   const tall = tellFrister(rader);
 
   return (
     <>
+      <Samtalevarsel tall={samtaletall} />
+
       <Glipper utenNesteSteg={utenNesteSteg} stille={stille} />
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -144,5 +148,43 @@ export default async function Oppfolging() {
         ))}
       </Tabell>
     </>
+  );
+}
+
+/**
+ * Én linje om samtalene, og bare når det står noe igjen i dem.
+ *
+ * Den hører hjemme her og ikke på samtalesida, fordi det er denne sida
+ * man åpner om morgenen. Et forslag ingen ser er det samme som ikke å ha
+ * hentet samtalen i det hele tatt.
+ */
+function Samtalevarsel({ tall }: { tall: { ukoblede: number; apneForslag: number } }) {
+  if (tall.apneForslag === 0 && tall.ukoblede === 0) return null;
+
+  const deler = [
+    tall.apneForslag > 0 && `${tall.apneForslag} forslag fra samtaler venter på en frist`,
+    tall.ukoblede > 0 && `${tall.ukoblede} samtale${tall.ukoblede === 1 ? "" : "r"} mangler kunde`,
+  ].filter(Boolean);
+
+  return (
+    <Kort
+      style={{
+        padding: "11px 15px",
+        borderLeft: "3px solid #0EA5E9",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+        flexWrap: "wrap",
+      }}
+    >
+      <span style={{ fontSize: 13, color: "var(--tekst-2)" }}>{deler.join(" · ")}</span>
+      <Link
+        href="/admin/crm/samtaler"
+        style={{ fontSize: 12.5, fontWeight: 600, color: "var(--bla)", textDecoration: "none" }}
+      >
+        Se samtalene →
+      </Link>
+    </Kort>
   );
 }
