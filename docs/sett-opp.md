@@ -245,3 +245,54 @@ hemmelig-flagget.
 
 Og husk: **endrede miljøvariabler slår ikke inn før neste utrulling.**
 Å rette en verdi uten å bygge på nytt gjør ingenting.
+
+## En felle i Postgres: hvem eier tabellene
+
+Bygget feilet på dette, og feilmeldingen sier ikke hva som er galt:
+
+```
+PostgresError: must be owner of table vedlegg   (42501)
+Failed query: ALTER TABLE "vedlegg" ADD COLUMN "tripletex_forsok" ...
+```
+
+Databasen ble satt opp av Supabase sin `postgres`-rolle, mens appen kobler
+seg på som `montorappen`. Den fikk `CREATE` på databasen, og det er nok til
+å **lage** nye tabeller — derfor gikk alle migreringene fram til nå.
+
+Men `ALTER TABLE` krever at du **eier** tabellen. Det holder ikke å ha
+skriverettigheter på den. Så første gang en migrering skulle endre en
+kolonne på noe som ble laget før `montorappen` fantes, stoppet den.
+
+Det lumske er at feilen ikke kommer før den dagen en migrering endrer noe.
+Alt ser riktig ut i månedsvis.
+
+### Slik ble det rettet
+
+Kjørt som `postgres` i Supabase sin SQL-editor:
+
+```sql
+-- postgres må kunne «bli» montorappen for å gi bort eierskapet
+grant montorappen to postgres;
+
+do $$
+declare r record;
+begin
+  for r in select tablename from pg_tables
+           where schemaname='public' and tableowner <> 'montorappen' loop
+    execute format('alter table public.%I owner to montorappen', r.tablename);
+  end loop;
+  for r in select sequencename from pg_sequences where schemaname='public' loop
+    execute format('alter sequence public.%I owner to montorappen', r.sequencename);
+  end loop;
+end $$;
+```
+
+Sjekk etterpå at alt står på én eier:
+
+```sql
+select tableowner, count(*) from pg_tables
+where schemaname='public' group by tableowner;
+```
+
+Settes databasen opp på nytt et annet sted, er dette verdt å gjøre med en
+gang — ikke vente til en migrering feiler.
