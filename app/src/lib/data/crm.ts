@@ -53,6 +53,10 @@ export type PipelineKort = {
   mottatt: Date;
   aiHastegrad: string | null;
   ansvarligNavn: string | null;
+  /** Finnes det en åpen oppfølging på saken? Styrer om vi spør om én. */
+  harNesteSteg: boolean;
+  kundeId: string | null;
+  prosjektId: string | null;
 };
 
 export async function hentPipeline(okt: Okt): Promise<PipelineKort[]> {
@@ -68,6 +72,13 @@ export async function hentPipeline(okt: Okt): Promise<PipelineKort[]> {
       mottatt: henvendelser.mottatt,
       aiHastegrad: henvendelser.aiHastegrad,
       ansvarligNavn: ansatte.navn,
+      kundeId: henvendelser.kundeId,
+      prosjektId: henvendelser.prosjektId,
+      harNesteSteg: sql<boolean>`exists (
+        select 1 from ${oppfolginger}
+        where ${oppfolginger.henvendelseId} = ${henvendelser.id}
+          and ${oppfolginger.fullfort} = false
+      )`,
     })
     .from(henvendelser)
     .leftJoin(kunder, eq(henvendelser.kundeId, kunder.id))
@@ -75,7 +86,11 @@ export async function hentPipeline(okt: Okt): Promise<PipelineKort[]> {
     .where(eq(henvendelser.tenantId, okt.tenantId))
     .orderBy(desc(henvendelser.mottatt));
 
-  return rader.map((r) => ({ ...r, sum: r.sum === null ? null : Number(r.sum) }));
+  return rader.map((r) => ({
+    ...r,
+    sum: r.sum === null ? null : Number(r.sum),
+    harNesteSteg: Boolean(r.harNesteSteg),
+  }));
 }
 
 /** Henvendelser til innboksen, nyeste først. */
@@ -655,4 +670,132 @@ export async function hentKunde(okt: Okt, kundeId: string) {
   return db.query.kunder.findFirst({
     where: and(eq(kunder.id, kundeId), eq(kunder.tenantId, okt.tenantId)),
   });
+}
+
+/* ------------------------------------------------------ uka */
+
+export type Ukesoppsummering = {
+  inn: number;
+  vunnet: number;
+  tapt: number;
+  gjort: number;
+  nyeReklamasjoner: number;
+  lukkedeReklamasjoner: number;
+  /** Frister denne uka som ennå ikke er gjort. */
+  staarIgjen: { id: string; hva: string; frist: string; hvem: string | null }[];
+  /** Det som faktisk ble gjort, til å lese fredag ettermiddag. */
+  gjortListe: { id: string; hva: string; naar: Date; hvem: string | null }[];
+};
+
+/**
+ * Uka som ble, og det som står igjen.
+ *
+ * Denne finnes fordi fredag ettermiddag er det eneste tidspunktet man
+ * faktisk ser tilbake. Resten av uka ser man bare framover, og da er det
+ * ingen som oppdager at noe har ligget stille i fem dager.
+ */
+export async function hentUkesoppsummering(
+  okt: Okt,
+  mandag: string,
+  sondag: string,
+): Promise<Ukesoppsummering> {
+  const t = okt.tenantId;
+  const fra = new Date(`${mandag}T00:00:00Z`);
+  const til = new Date(`${sondag}T23:59:59Z`);
+
+  const [inn, vunnet, tapt, nyeRek, lukkedeRek, frister, gjort] = await Promise.all([
+    db
+      .select({ n: sql<number>`count(*)`.mapWith(Number) })
+      .from(henvendelser)
+      .where(
+        and(
+          eq(henvendelser.tenantId, t),
+          gte(henvendelser.mottatt, fra),
+          lt(henvendelser.mottatt, til),
+        ),
+      ),
+
+    db
+      .select({ n: sql<number>`count(*)`.mapWith(Number) })
+      .from(henvendelser)
+      .where(and(eq(henvendelser.tenantId, t), eq(henvendelser.trinn, "vunnet"))),
+
+    db
+      .select({ n: sql<number>`count(*)`.mapWith(Number) })
+      .from(henvendelser)
+      .where(and(eq(henvendelser.tenantId, t), eq(henvendelser.trinn, "tapt"))),
+
+    db
+      .select({ n: sql<number>`count(*)`.mapWith(Number) })
+      .from(reklamasjoner)
+      .where(
+        and(
+          eq(reklamasjoner.tenantId, t),
+          gte(reklamasjoner.opprettet, fra),
+          lt(reklamasjoner.opprettet, til),
+        ),
+      ),
+
+    db
+      .select({ n: sql<number>`count(*)`.mapWith(Number) })
+      .from(reklamasjoner)
+      .where(
+        and(
+          eq(reklamasjoner.tenantId, t),
+          gte(reklamasjoner.lukket, fra),
+          lt(reklamasjoner.lukket, til),
+        ),
+      ),
+
+    db
+      .select({
+        id: oppfolginger.id,
+        hva: oppfolginger.hva,
+        frist: oppfolginger.frist,
+        hvem: ansatte.navn,
+      })
+      .from(oppfolginger)
+      .leftJoin(ansatte, eq(oppfolginger.ansvarlig, ansatte.id))
+      .where(
+        and(
+          eq(oppfolginger.tenantId, t),
+          eq(oppfolginger.fullfort, false),
+          gte(oppfolginger.frist, mandag),
+          lt(oppfolginger.frist, sondag),
+        ),
+      )
+      .orderBy(asc(oppfolginger.frist)),
+
+    db
+      .select({
+        id: oppfolginger.id,
+        hva: oppfolginger.hva,
+        naar: oppfolginger.fullfortTidspunkt,
+        hvem: ansatte.navn,
+      })
+      .from(oppfolginger)
+      .leftJoin(ansatte, eq(oppfolginger.ansvarlig, ansatte.id))
+      .where(
+        and(
+          eq(oppfolginger.tenantId, t),
+          eq(oppfolginger.fullfort, true),
+          gte(oppfolginger.fullfortTidspunkt, fra),
+          lt(oppfolginger.fullfortTidspunkt, til),
+        ),
+      )
+      .orderBy(desc(oppfolginger.fullfortTidspunkt)),
+  ]);
+
+  return {
+    inn: inn[0]?.n ?? 0,
+    vunnet: vunnet[0]?.n ?? 0,
+    tapt: tapt[0]?.n ?? 0,
+    gjort: gjort.length,
+    nyeReklamasjoner: nyeRek[0]?.n ?? 0,
+    lukkedeReklamasjoner: lukkedeRek[0]?.n ?? 0,
+    staarIgjen: frister,
+    gjortListe: gjort
+      .filter((g): g is typeof g & { naar: Date } => g.naar !== null)
+      .map((g) => ({ id: g.id, hva: g.hva, naar: g.naar, hvem: g.hvem })),
+  };
 }

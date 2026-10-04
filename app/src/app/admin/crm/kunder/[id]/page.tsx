@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { krevRolle } from "@/lib/tilgang";
 import { hentKunde, hentKundetidslinje } from "@/lib/data/crm";
 import { Etikett, Kort, RadVerdi, Sidetittel, Tomt } from "@/components/ui";
+import { Notat } from "../notat";
 
 export const metadata = { title: "Kunde · CRM" };
 
@@ -78,6 +79,8 @@ export default async function Kundekort({ params }: { params: Promise<{ id: stri
       </Kort>
 
       <Etikett>Historikk ({tidslinje.length})</Etikett>
+
+      <Notat kundeId={kunde.id} />
 
       {tidslinje.length === 0 ? (
         <Tomt tekst="Ingenting registrert på denne kunden ennå." />

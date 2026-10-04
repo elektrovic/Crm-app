@@ -1,5 +1,6 @@
 import { krevRolle } from "@/lib/tilgang";
 import { hentHenvendelser, hentKundevalg, hentPipeline } from "@/lib/data/crm";
+import { hentProsjektvalg } from "@/lib/data/kalender";
 import { triageErSattOpp } from "@/lib/ai/triage";
 import { PIPELINE, type PipelineTrinn } from "@/db/schema";
 import { Etikett, Kort, Pille, kroner } from "@/components/ui";
@@ -40,10 +41,11 @@ function alder(mottatt: Date): string {
 
 export default async function Pipeline() {
   const okt = await krevRolle("leder");
-  const [kort, kunder, rader] = await Promise.all([
+  const [kort, kunder, rader, prosjektvalg] = await Promise.all([
     hentPipeline(okt),
     hentKundevalg(okt),
     hentHenvendelser(okt),
+    hentProsjektvalg(okt),
   ]);
 
   // Tapt vises ikke i tavla — den ville bare fylt en kolonne med historikk.
@@ -147,7 +149,19 @@ export default async function Pipeline() {
                   </div>
 
                   <div style={{ marginTop: 10 }}>
-                    <Trinnvelger id={k.id} trinn={k.trinn} />
+                    <Trinnvelger
+                      id={k.id}
+                      trinn={k.trinn}
+                      harNesteSteg={k.harNesteSteg}
+                      kundeId={k.kundeId}
+                      hvem={k.kundeNavn ?? k.avsenderNavn}
+                      prosjektId={k.prosjektId}
+                      prosjekter={prosjektvalg.map((p) => ({
+                        id: p.id,
+                        nummer: p.nummer,
+                        navn: p.navn,
+                      }))}
+                    />
                   </div>
                 </Kort>
               ))

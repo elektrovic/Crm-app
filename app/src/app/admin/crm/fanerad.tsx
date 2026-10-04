@@ -9,6 +9,7 @@ const FANER = [
   { sti: "/admin/crm/kunder", navn: "Kunder" },
   { sti: "/admin/crm/reklamasjoner", navn: "Reklamasjoner" },
   { sti: "/admin/crm/garanti", navn: "Garanti og gjenkjøp" },
+  { sti: "/admin/crm/uka", navn: "Uka" },
 ];
 
 export function Fanerad() {

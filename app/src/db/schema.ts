@@ -644,6 +644,17 @@ export const henvendelser = pgTable(
     avsenderEpost: text("avsender_epost"),
 
     kundeId: uuid("kunde_id").references(() => kunder.id),
+
+    /**
+     * Prosjektet henvendelsen ble til.
+     *
+     * Uten denne stopper sporet ved «vunnet»: man vet at jobben ble solgt,
+     * men ikke hvilken jobb det ble. Med den lukkes sirkelen — fra
+     * telefonen som kom inn, til prosjektet i Tripletex, til reklamasjonen
+     * hvis den kommer.
+     */
+    prosjektId: uuid("prosjekt_id"),
+
     trinn: text("trinn").$type<PipelineTrinn>().notNull().default("ny"),
     ansvarlig: uuid("ansvarlig").references(() => ansatte.id),
     avdeling: text("avdeling").$type<Avdeling>(),

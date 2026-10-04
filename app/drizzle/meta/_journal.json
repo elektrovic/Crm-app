@@ -29,6 +29,13 @@
       "when": 1791115788425,
       "tag": "0003_steady_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791117488155,
+      "tag": "0004_solid_clea",
+      "breakpoints": true
     }
   ]
 }

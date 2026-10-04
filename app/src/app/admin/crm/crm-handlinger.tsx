@@ -57,8 +57,62 @@ const REKSTATUS: Record<Reklamasjonsstatus, string> = {
 /* ───────────────────────── Henvendelser ───────────────────────── */
 
 /** Flytt en henvendelse videre i pipelinen, rett fra kortet. */
-export function Trinnvelger({ id, trinn }: { id: string; trinn: PipelineTrinn }) {
+/** Trinn der saken fortsatt lever, og altså trenger en frist. */
+const AKTIVE_TRINN: PipelineTrinn[] = ["ny", "kontaktet", "befaring_avtalt", "tilbud_sendt"];
+
+/** En uke fram. Nær nok til å være ekte, langt nok til å rekke noe. */
+function omEnUke(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Trinnvelgeren, som også passer på at saken har et neste steg.
+ *
+ * Står saken i et trinn der den fortsatt lever, og ingen har satt en frist,
+ * spør den om en. Det er forskjellen på å oppdage glemte saker og å ikke få
+ * lov til å glemme dem — den første lista må ryddes, den andre holder seg
+ * kort av seg selv.
+ *
+ * Spørsmålet utledes av dataene, ikke av at du nettopp klikket. Første
+ * forsøk satte en tilstand etter trinnbyttet, men `kjor()` oppdaterer sida,
+ * komponenten bygges på nytt, og tilstanden var borte før den rakk å vises.
+ * Nå står spørsmålet der så lenge saken mangler et neste steg — også når du
+ * kommer tilbake i morgen.
+ *
+ * Du kan skjule det. Et system som nekter deg å gå videre blir omgått, og da
+ * er man tilbake til notater på gule lapper.
+ */
+export function Trinnvelger({
+  id,
+  trinn,
+  harNesteSteg,
+  kundeId,
+  hvem,
+  prosjekter = [],
+  prosjektId,
+}: {
+  id: string;
+  trinn: PipelineTrinn;
+  harNesteSteg: boolean;
+  kundeId: string | null;
+  /** Navnet som foreslås i oppfølgingsteksten. */
+  hvem: string | null;
+  /** Prosjektene saken kan ha blitt til. */
+  prosjekter?: { id: string; nummer: string; navn: string }[];
+  prosjektId: string | null;
+}) {
   const { kjor, jobber, feil } = useHandling();
+  const [skjult, setSkjult] = useState(false);
+
+  // Vunnet uten prosjekt er et spor som stopper: man vet at jobben ble
+  // solgt, men ikke hvilken jobb det ble.
+  const trengerProsjekt = trinn === "vunnet" && !prosjektId && prosjekter.length > 0;
+  const trengerFrist = !harNesteSteg && AKTIVE_TRINN.includes(trinn);
+
+  const sporProsjekt = trengerProsjekt && !skjult;
+  const spor = !trengerProsjekt && trengerFrist && !skjult;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -66,7 +120,9 @@ export function Trinnvelger({ id, trinn }: { id: string; trinn: PipelineTrinn })
         value={trinn}
         disabled={jobber}
         aria-label="Trinn"
-        onChange={(e) => kjor("/api/crm/henvendelser", "PATCH", { id, trinn: e.target.value })}
+        onChange={(e) =>
+          void kjor("/api/crm/henvendelser", "PATCH", { id, trinn: e.target.value })
+        }
         style={{ ...feltstil, height: 32, fontSize: 12.5 }}
       >
         {PIPELINE.map((t) => (
@@ -75,6 +131,126 @@ export function Trinnvelger({ id, trinn }: { id: string; trinn: PipelineTrinn })
           </option>
         ))}
       </select>
+
+      {sporProsjekt && (
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const f = new FormData(e.currentTarget);
+            const ok = await kjor("/api/crm/henvendelser", "PATCH", {
+              id,
+              prosjektId: f.get("prosjektId"),
+            });
+            if (!ok) return;
+          }}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            padding: 9,
+            borderRadius: 10,
+            background: "var(--flate)",
+          }}
+        >
+          <span style={{ fontSize: 11.5, fontWeight: 700 }}>Hvilket prosjekt ble det?</span>
+          <select name="prosjektId" required style={{ ...feltstil, height: 32, fontSize: 12.5 }}>
+            {prosjekter.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nummer} {p.navn}
+              </option>
+            ))}
+          </select>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              type="submit"
+              disabled={jobber}
+              style={{ ...knappstil, height: 30, padding: "0 11px", fontSize: 12 }}
+            >
+              Koble
+            </button>
+            <button
+              type="button"
+              onClick={() => setSkjult(true)}
+              style={{
+                ...knappstil,
+                height: 30,
+                padding: "0 11px",
+                fontSize: 12,
+                background: "transparent",
+                color: "var(--dempet)",
+                border: "1px solid var(--linje)",
+              }}
+            >
+              Senere
+            </button>
+          </div>
+        </form>
+      )}
+
+      {spor && (
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const f = new FormData(e.currentTarget);
+            const ok = await kjor("/api/crm/oppfolginger", "POST", {
+              hva: f.get("hva"),
+              frist: f.get("frist"),
+              henvendelseId: id,
+              kundeId,
+            });
+            if (!ok) return;
+          }}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            padding: 9,
+            borderRadius: 10,
+            background: "var(--flate)",
+          }}
+        >
+          <span style={{ fontSize: 11.5, fontWeight: 700 }}>Når følger du opp?</span>
+          <input
+            name="hva"
+            required
+            maxLength={300}
+            defaultValue={hvem ? `Følg opp ${hvem}` : "Følg opp saken"}
+            style={{ ...feltstil, height: 32, fontSize: 12.5 }}
+          />
+          <input
+            type="date"
+            name="frist"
+            required
+            defaultValue={omEnUke()}
+            style={{ ...feltstil, height: 32, fontSize: 12.5 }}
+          />
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              type="submit"
+              disabled={jobber}
+              style={{ ...knappstil, height: 30, padding: "0 11px", fontSize: 12 }}
+            >
+              Sett frist
+            </button>
+            <button
+              type="button"
+              onClick={() => setSkjult(true)}
+              style={{
+                ...knappstil,
+                height: 30,
+                padding: "0 11px",
+                fontSize: 12,
+                background: "transparent",
+                color: "var(--dempet)",
+                border: "1px solid var(--linje)",
+              }}
+            >
+              Senere
+            </button>
+          </div>
+        </form>
+      )}
+
       <Feilmelding tekst={feil} />
     </div>
   );

@@ -1,0 +1,1 @@
+ALTER TABLE "henvendelser" ADD COLUMN "prosjekt_id" uuid;

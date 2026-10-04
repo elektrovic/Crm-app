@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { ansatte, AVDELINGER, henvendelser, KANAL, PIPELINE } from "@/db/schema";
+import { ansatte, AVDELINGER, henvendelser, KANAL, PIPELINE, prosjekter } from "@/db/schema";
 import { endepunkt, ipFra } from "@/lib/api";
 import { krevRolle } from "@/lib/tilgang";
 import { loggEndring } from "@/lib/endringslogg";
@@ -23,6 +23,8 @@ const Ny = z.object({
   kundeId: z.uuid().nullish(),
   avdeling: z.enum(AVDELINGER).nullish(),
   sum: z.number().nonnegative().nullish(),
+  /** Prosjektet saken ble til. Settes når den vinnes. */
+  prosjektId: z.uuid().nullish(),
 });
 
 export const POST = endepunkt(Ny, async ({ okt, data, request }) => {
@@ -60,6 +62,8 @@ const Endre = z.object({
   ansvarlig: z.uuid().nullish(),
   avdeling: z.enum(AVDELINGER).nullish(),
   sum: z.number().nonnegative().nullish(),
+  /** Prosjektet saken ble til. Settes når den vinnes. */
+  prosjektId: z.uuid().nullish(),
 });
 
 export const PATCH = endepunkt(Endre, async ({ okt, data, request }) => {
@@ -72,6 +76,17 @@ export const PATCH = endepunkt(Endre, async ({ okt, data, request }) => {
 
   const endringer: Record<string, unknown> = {};
   if (data.trinn !== undefined) endringer.trinn = data.trinn;
+  if (data.prosjektId !== undefined) {
+    // Prosjektet må finnes og høre til oss. En ID fra forespørselen er
+    // ikke et bevis på noe som helst.
+    if (data.prosjektId) {
+      const p = await db.query.prosjekter.findFirst({
+        where: and(eq(prosjekter.id, data.prosjektId), eq(prosjekter.tenantId, okt.tenantId)),
+      });
+      if (!p) return NextResponse.json({ feil: "Ukjent prosjekt." }, { status: 400 });
+    }
+    endringer.prosjektId = data.prosjektId ?? null;
+  }
   if (data.avdeling !== undefined) endringer.avdeling = data.avdeling ?? null;
   if (data.sum !== undefined) {
     endringer.sum = data.sum === null ? null : String(data.sum);
