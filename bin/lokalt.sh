@@ -30,26 +30,55 @@ major="$(node -p 'process.versions.node.split(".")[0]')"
 # eller en vi setter opp i Docker. Den som vil teste en knapp skal ikke
 # måtte lese en installasjonsveiledning først.
 start_postgres() {
+  # Postgres.app legger ikke binærfilene i PATH av seg selv.
+  for d in /Applications/Postgres.app/Contents/Versions/*/bin; do
+    [ -d "$d" ] && PATH="$PATH:$d"
+  done
+  export PATH
+
   if pg_isready -h 127.0.0.1 -p 5432 >/dev/null 2>&1; then
     return 0
   fi
 
-  if command -v brew >/dev/null && brew services list 2>/dev/null | grep -q postgres; then
-    si "Starter Postgres via Homebrew …"
-    brew services start "$(brew services list | awk '/postgres/{print $1; exit}')" >/dev/null
-    sleep 3
-  elif command -v docker >/dev/null; then
+  # 1) Postgres.app er installert, men ikke startet.
+  if [ -d /Applications/Postgres.app ]; then
+    si "Starter Postgres.app …"
+    open -a Postgres >/dev/null 2>&1 || true
+    for _ in $(seq 1 25); do
+      pg_isready -h 127.0.0.1 -p 5432 >/dev/null 2>&1 && return 0
+      sleep 1
+    done
+  fi
+
+  # 2) Homebrew.
+  if command -v brew >/dev/null; then
+    tjeneste="$(brew services list 2>/dev/null | awk '/^postgresql/{print $1; exit}')"
+    if [ -z "$tjeneste" ]; then
+      si "Installerer Postgres via Homebrew (tar noen minutter) …"
+      brew install postgresql@17 >/dev/null
+      tjeneste="postgresql@17"
+    fi
+    si "Starter Postgres …"
+    brew services start "$tjeneste" >/dev/null 2>&1 || true
+    for _ in $(seq 1 25); do
+      pg_isready -h 127.0.0.1 -p 5432 >/dev/null 2>&1 && return 0
+      sleep 1
+    done
+  fi
+
+  # 3) Docker.
+  if command -v docker >/dev/null && docker info >/dev/null 2>&1; then
     if [ -z "$(docker ps -q -f name=montorappen-db)" ]; then
       si "Starter Postgres i Docker …"
-      docker run -d --name montorappen-db --rm \
-        -e POSTGRES_USER=montor \
-        -e POSTGRES_HOST_AUTH_METHOD=trust \
-        -e POSTGRES_DB=montorappen \
-        -p 5432:5432 postgres:17 >/dev/null 2>&1 \
-        || docker start montorappen-db >/dev/null
+      docker start montorappen-db >/dev/null 2>&1 || \
+        docker run -d --name montorappen-db \
+          -e POSTGRES_USER=montor \
+          -e POSTGRES_HOST_AUTH_METHOD=trust \
+          -e POSTGRES_DB=montorappen \
+          -p 5432:5432 postgres:17 >/dev/null
     fi
     printf 'Venter på databasen'
-    for _ in $(seq 1 30); do
+    for _ in $(seq 1 40); do
       if docker exec montorappen-db pg_isready -U montor >/dev/null 2>&1; then
         echo " — oppe."
         return 0
@@ -57,15 +86,34 @@ start_postgres() {
       printf '.'; sleep 1
     done
     echo
-    nei "Databasen i Docker svarte ikke."
-  else
-    nei "Fant ingen Postgres. Installer den, eller installer Docker — da ordner dette seg selv."
   fi
 
-  pg_isready -h 127.0.0.1 -p 5432 >/dev/null 2>&1 || nei "Postgres svarer ikke på port 5432."
+  nei "Fant ingen database. Enkleste vei: installer Homebrew fra brew.sh,
+lukk vinduet, åpne et nytt og kjør denne på nytt. Da ordner resten seg selv."
 }
 
 start_postgres
+
+# Rollen og basen finnes ikke på en fersk Postgres. Lages de ikke her,
+# møter du «role montor does not exist» i stedet for en app.
+#
+# Hvem som er administrator varierer med hvordan Postgres ble installert:
+# Postgres.app og Homebrew bruker ditt eget brukernavn, Docker og Linux
+# bruker «postgres». Vi prøver oss fram i stedet for å gjette.
+adm=""
+for u in "$(id -un)" postgres montor; do
+  if psql -h 127.0.0.1 -U "$u" -d postgres -tAc "select 1" >/dev/null 2>&1; then
+    adm="$u"; break
+  fi
+done
+[ -n "$adm" ] || nei "Postgres svarer, men slipper meg ikke inn. Hvilken bruker er administrator?"
+
+kjor_sql() { psql -h 127.0.0.1 -U "$adm" -d postgres -tAc "$1" 2>/dev/null; }
+
+kjor_sql "select 1 from pg_roles where rolname='montor'" | grep -q 1 \
+  || kjor_sql "create role montor login superuser" >/dev/null
+kjor_sql "select 1 from pg_database where datname='montorappen'" | grep -q 1 \
+  || kjor_sql "create database montorappen owner montor" >/dev/null
 
 # ---------------------------------------------------------------- .env
 if [ ! -f "$app/.env" ]; then
@@ -103,7 +151,8 @@ si "Oppdaterer tabellene …"
 #
 # Bare når basen er tom. Har du jobbet med noe lokalt, skal det ikke bli
 # overskrevet av tre oppdiktede ansatte fordi du startet appen på nytt.
-antall="$(psql "$BASE_URL" -tAc "select count(*) from ansatte" 2>/dev/null || echo 0)"
+antall="$(psql "$BASE_URL" -tAc "select count(*) from ansatte" 2>/dev/null | tr -d ' ' || true)"
+[ -n "$antall" ] || antall=0
 if [ "$antall" = "0" ]; then
   si "Basen er tom — legger inn testdata …"
   # Flagget må settes: demodata.ts nekter å kjøre uten, nettopp for at
