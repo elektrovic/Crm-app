@@ -9,7 +9,19 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { ansatte, AVDELINGER, henvendelser, KANAL, PIPELINE, prosjekter } from "@/db/schema";
+import {
+  ansatte,
+  AVDELINGER,
+  henvendelser,
+  KANAL,
+  kunder,
+  oppfolginger,
+  PIPELINE,
+  prosjekter,
+} from "@/db/schema";
+import { velgKunde } from "@/lib/crm/kundetreff";
+
+const ISO_DATO = /^\d{4}-\d{2}-\d{2}$/;
 import { endepunkt, ipFra } from "@/lib/api";
 import { krevRolle } from "@/lib/tilgang";
 import { loggEndring } from "@/lib/endringslogg";
@@ -25,10 +37,30 @@ const Ny = z.object({
   sum: z.number().nonnegative().nullish(),
   /** Prosjektet saken ble til. Settes når den vinnes. */
   prosjektId: z.uuid().nullish(),
+  /**
+   * Frist for neste steg. Settes den, lages oppfølgingen i samme kall.
+   *
+   * Å registrere saken og å bestemme når noe skal skje er to handlinger i
+   * hodet, men én ved telefonen. Krever den andre et nytt skjermbilde, blir
+   * den ikke gjort — og da er saken glemt før den er ett minutt gammel.
+   */
+  frist: z.string().regex(ISO_DATO).nullish(),
 });
 
 export const POST = endepunkt(Ny, async ({ okt, data, request }) => {
   await krevRolle("leder");
+
+  // Kjenner vi nummeret, kobles saken til kunden med en gang. Avgjørelsen
+  // ligger i velgKunde() med sine egne tester — den er lett å tro man har
+  // fått riktig, og vanskelig å se at man ikke har.
+  let kundeId = data.kundeId ?? null;
+  if (!kundeId && data.avsenderTelefon) {
+    const alle = await db
+      .select({ id: kunder.id, telefon: kunder.telefon })
+      .from(kunder)
+      .where(eq(kunder.tenantId, okt.tenantId));
+    kundeId = velgKunde(data.avsenderTelefon, alle);
+  }
 
   const [rad] = await db
     .insert(henvendelser)
@@ -39,21 +71,46 @@ export const POST = endepunkt(Ny, async ({ okt, data, request }) => {
       avsenderNavn: data.avsenderNavn ?? null,
       avsenderTelefon: data.avsenderTelefon ?? null,
       avsenderEpost: data.avsenderEpost ?? null,
-      kundeId: data.kundeId ?? null,
+      kundeId,
       avdeling: data.avdeling ?? null,
       sum: data.sum === null || data.sum === undefined ? null : String(data.sum),
+      prosjektId: data.prosjektId ?? null,
     })
     .returning();
+
+  // Fristen lages etterpå, ikke i samme transaksjon. Går den galt, står
+  // saken der likevel — og en registrert sak uten frist er mye bedre enn
+  // en samtale som ikke ble skrevet ned i det hele tatt.
+  let fristId: string | null = null;
+  if (rad && data.frist) {
+    const [o] = await db
+      .insert(oppfolginger)
+      .values({
+        tenantId: okt.tenantId,
+        henvendelseId: rad.id,
+        kundeId,
+        hva: data.avsenderNavn ? `Følg opp ${data.avsenderNavn}` : "Følg opp henvendelsen",
+        frist: data.frist,
+        ansvarlig: okt.id,
+      })
+      .returning({ id: oppfolginger.id });
+    fristId = o?.id ?? null;
+  }
 
   await loggEndring(okt, {
     handling: "henvendelse.opprettet",
     tabell: "henvendelser",
     radId: rad?.id,
-    etter: { kanal: data.kanal, avdeling: data.avdeling },
+    etter: {
+      kanal: data.kanal,
+      avdeling: data.avdeling,
+      kjentKunde: kundeId !== null,
+      frist: data.frist ?? null,
+    },
     ipAdresse: ipFra(request),
   });
 
-  return NextResponse.json({ id: rad?.id });
+  return NextResponse.json({ id: rad?.id, kundeId, fristId });
 });
 
 const Endre = z.object({

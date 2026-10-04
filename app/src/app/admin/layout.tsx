@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { Sidemeny } from "./sidemeny";
+import { Hurtighenvendelse } from "./hurtighenvendelse";
 
 /**
  * Admin-flaten.
@@ -38,6 +39,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       >
         {children}
       </main>
+
+      {/* Fast på alle ledersider: telefonen ringer mens du står i noe annet. */}
+      <Hurtighenvendelse />
     </div>
   );
 }
