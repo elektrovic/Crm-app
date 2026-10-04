@@ -20,7 +20,8 @@ import { and, eq } from "drizzle-orm";
 import { authConfig } from "./auth.config";
 import { db } from "./db";
 import { ansatte, type Avdeling, type Rolle } from "./db/schema";
-import { DEMO_INNLOGGING } from "./lib/demo";
+import { DEMO_INNLOGGING, DEMO_PASSORD } from "./lib/demo";
+import { likeHemmeligheter } from "./lib/krypto";
 
 /** Feltene Montørappen legger på den innloggede brukeren. */
 export type Brukerprofil = {
@@ -45,14 +46,24 @@ declare module "next-auth" {
 }
 
 /**
- * Demodøra. Finnes bare når DEMO_INNLOGGING er «1», og slipper bare inn
- * ansatte som allerede ligger aktive i databasen.
+ * Demodøra. Finnes bare når DEMO_INNLOGGING er «1», krever DEMO_PASSORD,
+ * og slipper bare inn ansatte som allerede ligger aktive i databasen.
  */
 const demoProvider = Credentials({
   id: "demo",
   name: "Demo",
-  credentials: { epost: { label: "E-post", type: "text" } },
+  credentials: {
+    epost: { label: "E-post", type: "text" },
+    passord: { label: "Passord", type: "password" },
+  },
   async authorize(data) {
+    // Står passordet tomt, er døra stengt — ikke åpen. En glemt
+    // miljøvariabel skal ikke bli til fri adgang.
+    if (!DEMO_PASSORD) return null;
+
+    const passord = typeof data?.passord === "string" ? data.passord : "";
+    if (!likeHemmeligheter(passord, DEMO_PASSORD)) return null;
+
     const epost = typeof data?.epost === "string" ? data.epost : "";
     if (!epost) return null;
 
