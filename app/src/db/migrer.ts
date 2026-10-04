@@ -16,6 +16,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
+import { krevRiktigBase } from "./vern";
 
 async function kjor() {
   // Migrering endrer selve tabellene, og det skal gå i én forbindelse som
@@ -30,6 +31,10 @@ async function kjor() {
     console.log("Ingen DATABASE_URL — hopper over migrering.");
     return;
   }
+
+  // Viktigst her av alt: migrering endrer tabellene. Går den mot feil
+  // base, er det ikke en rad som havner feil — det er strukturen.
+  krevRiktigBase(url);
 
   const lokal = url.includes("localhost") || url.includes("127.0.0.1");
 

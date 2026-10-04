@@ -1,6 +1,7 @@
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
+import { krevRiktigBase } from "./vern";
 
 /**
  * Tilkoblingen opprettes først når noen faktisk spør etter den.
@@ -15,6 +16,9 @@ function opprett(): PostgresJsDatabase<typeof schema> {
   if (!url) {
     throw new Error("DATABASE_URL mangler. Kopier .env.example til .env og fyll den ut.");
   }
+
+  // Nekter om et testmiljø peker på produksjonsbasen. Se vern.ts.
+  krevRiktigBase(url);
 
   const lokal = url.includes("localhost") || url.includes("127.0.0.1");
 

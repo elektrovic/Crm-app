@@ -33,3 +33,28 @@
 
 # Sikkerhetsheaderne settes i app/next.config.ts og følger med responsene
 # derfra, slik at det finnes ett sted å endre dem.
+
+# --------------------------------------------------------------- miljøer
+#
+# MILJO forteller appen hvilket miljø den kjører i. Vernet i
+# app/src/db/vern.ts nekter å koble til produksjonsbasen når MILJO ikke
+# er «produksjon», slik at test aldri kan skrive i den ekte basen.
+#
+# Disse gjelder under BYGGING — altså også for migreringen, som er den
+# som endrer tabellene. Variablene appen leser når den KJØRER, settes per
+# kontekst i Netlify sitt grensesnitt. Begge deler må på plass; se
+# docs/testmiljo.md.
+
+[context.production.environment]
+  MILJO = "produksjon"
+
+# Alle grendeployer, som i dag betyr «test»-grenen.
+[context.branch-deploy.environment]
+  MILJO = "test"
+
+[context.deploy-preview.environment]
+  MILJO = "test"
+
+# `netlify dev` lokalt.
+[context.dev.environment]
+  MILJO = "lokal"
