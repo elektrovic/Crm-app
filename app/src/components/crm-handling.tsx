@@ -20,7 +20,7 @@ export function useHandling() {
 
   async function kjor(
     sti: string,
-    metode: "POST" | "PATCH",
+    metode: "POST" | "PATCH" | "DELETE",
     kropp: unknown,
     etterpa?: () => void,
   ): Promise<boolean> {

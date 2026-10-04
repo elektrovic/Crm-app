@@ -12,6 +12,7 @@ import { antallIKo, lyttPaKo } from "@/lib/offline/ko";
  */
 const PUNKTER = [
   { sti: "/hjem", navn: "Hjem", ikon: "H" },
+  { sti: "/kalender", navn: "Uke", ikon: "U" },
   { sti: "/timer", navn: "Timer", ikon: "T" },
   { sti: "/biler", navn: "Biler", ikon: "B" },
   { sti: "/ko", navn: "Kø", ikon: "K" },
@@ -62,12 +63,12 @@ export function Bunnmeny({ leder = false }: { leder?: boolean }) {
               flexDirection: "column",
               alignItems: "center",
               gap: 4,
-              padding: "6px 12px",
+              padding: "6px 9px",
               borderRadius: 999,
               background: aktiv ? "var(--bla)" : "transparent",
               color: aktiv ? "#fff" : "var(--mork-dempet)",
               textDecoration: "none",
-              minWidth: 56,
+              minWidth: 50,
               position: "relative",
               transition: "background .15s ease",
             }}

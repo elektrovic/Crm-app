@@ -918,3 +918,47 @@ export const bestillingslinjer = pgTable(
   },
   (t) => [index("bestillingslinje_bestilling_idx").on(t.tenantId, t.bestillingId)],
 );
+
+/**
+ * Pakkelista — materiellet montøren skal ha med på én bestemt jobb.
+ *
+ * To kilder smelter sammen her, og det er med vilje. En linje peker enten
+ * på en mangel noen alt har meldt inn på prosjektet (`mangelId`), eller
+ * den er skrevet fritt av den som planla jobben. Lederen skal slippe å
+ * skrive av en liste montøren allerede har ført, og samtidig kunne be om
+ * stigen ingen har registrert som «mangel».
+ *
+ * `tekst` lagres som kopi selv når linja kom fra en mangel. Det er ikke
+ * dobbeltlagring: pakkelista er hva som ble bedt om den dagen. Endrer
+ * noen mangelteksten i ettertid, skal ikke gårsdagens liste endre seg.
+ *
+ * Lista henger på tildelingen, ikke på prosjektet. To montører på samme
+ * bygg har hver sin bil og hver sin last.
+ */
+export const medbring = pgTable(
+  "medbring",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    tildelingId: uuid("tildeling_id")
+      .notNull()
+      .references(() => tildelinger.id, { onDelete: "cascade" }),
+
+    /** Mangelen linja kom fra, når den kom derfra. */
+    mangelId: uuid("mangel_id").references(() => mangler.id, { onDelete: "set null" }),
+
+    tekst: text("tekst").notNull(),
+    antall: text("antall"),
+    enhet: text("enhet").notNull().default("STK"),
+
+    /** Montøren krysser av når den ligger i bilen. */
+    pakket: boolean("pakket").notNull().default(false),
+    pakketTidspunkt: timestamp("pakket_tidspunkt", { withTimezone: true }),
+
+    sortering: integer("sortering").notNull().default(0),
+    opprettet: timestamp("opprettet", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("medbring_tildeling_idx").on(t.tenantId, t.tildelingId, t.sortering)],
+);

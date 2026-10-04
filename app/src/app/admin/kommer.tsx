@@ -37,8 +37,8 @@ export function Kommer({
               style={{
                 padding: "3px 9px",
                 borderRadius: 999,
-                background: "var(--gul-flate, #FEF3C7)",
-                color: "#92400E",
+                background: "var(--oransje-bg)",
+                color: "var(--oransje-tekst)",
                 fontFamily: "var(--font-mono)",
                 fontSize: 10,
                 fontWeight: 700,

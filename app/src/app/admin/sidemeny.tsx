@@ -26,7 +26,7 @@ const PUNKTER = [
   { sti: "/admin/prosjekter", navn: "Prosjekter", bygget: false },
   { sti: "/admin/timer", navn: "Timer", bygget: false },
   { sti: "/admin/tilleggssalg", navn: "Tilleggssalg", bygget: false },
-  { sti: "/admin/kalender", navn: "Kalender", bygget: false },
+  { sti: "/admin/kalender", navn: "Kalender", bygget: true },
   { sti: "/admin/kontrollskjemaer", navn: "Kontrollskjemaer", bygget: false },
   { sti: "/admin/prislister", navn: "Prislister", bygget: false },
   { sti: "/admin/avdelinger", navn: "Avdelinger", bygget: false },

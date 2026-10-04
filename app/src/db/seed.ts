@@ -9,10 +9,12 @@
  * Trygg å kjøre flere ganger: finner den demodata fra før, lar den alt
  * stå og avslutter. Se guarden nederst i denne kommentaren.
  */
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "./index";
 import {
   adkomst,
+  mangler,
+  medbring,
   aktiviteter,
   ansatte,
   garantier,
@@ -526,6 +528,78 @@ async function seed() {
     });
 
     await db.insert(tillegg).values(tilleggsrader).onConflictDoNothing();
+  }
+
+  // --- Kalenderuke: noe å se på i planleggingen ---
+  //
+  // Dagens to jobber ligger alt over. Her fylles resten av uka, så
+  // rutenettet viser et realistisk bilde: to montører, overlapp på ett
+  // bygg, og en jobb som går over flere dager.
+  // Lise settes inn sammen med Marius lenger oppe, så hun hentes her
+  // i stedet for å endre destruktureringen der.
+  const [lise] = await db
+    .select({ id: ansatte.id })
+    .from(ansatte)
+    .where(and(eq(ansatte.tenantId, TENANT), eq(ansatte.epost, "lise@hallandgroup.no")));
+
+  if (montor && lise && rader.length >= 5) {
+    const dag = (n: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() + n);
+      return d.toISOString().slice(0, 10);
+    };
+
+    await db
+      .insert(tildelinger)
+      .values([
+        // Tore videre på Vollebekk ut uka.
+        { tenantId: TENANT, prosjektId: rader[0]!.id, ansattId: montor.id, dato: dag(1), fraKl: "07:30", tilKl: "15:00" },
+        { tenantId: TENANT, prosjektId: rader[0]!.id, ansattId: montor.id, dato: dag(2), fraKl: "07:30", tilKl: "15:00" },
+        // Kværnerbyen torsdag, med beskjed.
+        {
+          tenantId: TENANT,
+          prosjektId: rader[2]!.id,
+          ansattId: montor.id,
+          dato: dag(3),
+          fraKl: "08:00",
+          tilKl: "14:00",
+          notat: "Tavla er spenningssatt. Avtal utkobling med driftsleder før du starter.",
+        },
+        // Lise på lås, og onsdag møtes de to på samme bygg.
+        { tenantId: TENANT, prosjektId: rader[3]!.id, ansattId: lise.id, dato: dag(1), fraKl: "08:00", tilKl: "16:00" },
+        { tenantId: TENANT, prosjektId: rader[0]!.id, ansattId: lise.id, dato: dag(2), fraKl: "10:00", tilKl: "14:00" },
+      ])
+      .onConflictDoNothing();
+
+    // Mangler noen har meldt inn, så pakkelista har noe å hake av fra.
+    const meldt = await db
+      .insert(mangler)
+      .values([
+        { tenantId: TENANT, prosjektId: rader[0]!.id, tekst: "Kabelstige 300 mm", antall: "6", enhet: "M", lagtInnAv: montor.id },
+        { tenantId: TENANT, prosjektId: rader[0]!.id, tekst: "Jordingsklemmer", antall: "20", enhet: "STK", lagtInnAv: montor.id },
+        { tenantId: TENANT, prosjektId: rader[0]!.id, tekst: "Automat 16A C-kurve", antall: "4", enhet: "STK", lagtInnAv: montor.id, bestilt: true, bestiltTidspunkt: new Date() },
+        { tenantId: TENANT, prosjektId: rader[2]!.id, tekst: "Skinnebryter 63A", antall: "1", enhet: "STK", lagtInnAv: montor.id },
+      ])
+      .onConflictDoNothing()
+      .returning();
+
+    // En ferdig pakkeliste på morgendagens jobb: to fra manglene, én
+    // skrevet av lederen, og én alt krysset av.
+    const [morgendagen] = await db
+      .select({ id: tildelinger.id })
+      .from(tildelinger)
+      .where(and(eq(tildelinger.ansattId, montor.id), eq(tildelinger.dato, dag(1))));
+
+    if (morgendagen && meldt.length >= 2) {
+      await db
+        .insert(medbring)
+        .values([
+          { tenantId: TENANT, tildelingId: morgendagen.id, mangelId: meldt[0]!.id, tekst: meldt[0]!.tekst, antall: meldt[0]!.antall, enhet: meldt[0]!.enhet, sortering: 0, pakket: true, pakketTidspunkt: new Date() },
+          { tenantId: TENANT, tildelingId: morgendagen.id, mangelId: meldt[1]!.id, tekst: meldt[1]!.tekst, antall: meldt[1]!.antall, enhet: meldt[1]!.enhet, sortering: 1 },
+          { tenantId: TENANT, tildelingId: morgendagen.id, tekst: "Stigen fra verkstedet", antall: "1", enhet: "STK", sortering: 2 },
+        ])
+        .onConflictDoNothing();
+    }
   }
 
   console.log("Ferdig.");
