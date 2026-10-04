@@ -36,6 +36,13 @@
       "when": 1791117488155,
       "tag": "0004_solid_clea",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791120506064,
+      "tag": "0005_minor_ser_duncan",
+      "breakpoints": true
     }
   ]
 }

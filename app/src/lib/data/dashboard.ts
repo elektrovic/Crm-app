@@ -36,47 +36,52 @@ export async function hentNokkeltall(okt: Okt, iDag: string): Promise<Nokkeltall
   const mandag = mandagen(iDag);
   const forste = manedensForste(iDag);
 
-  const [timer] = await db
+  // Seks uavhengige tellinger. Etter hverandre ble de seks turer over
+  // Atlanteren — Ohio til London og tilbake, rundt 85 ms hver. Samtidig
+  // koster de én tur.
+  const [[timer], [salg], [medTimer], [medTillegg], [ko], [koTillegg]] = await Promise.all([
+    db
     .select({ sum: sql<number>`coalesce(sum(${timeforinger.timer}), 0)`.mapWith(Number) })
     .from(timeforinger)
-    .where(and(eq(timeforinger.tenantId, okt.tenantId), gte(timeforinger.dato, mandag)));
+    .where(and(eq(timeforinger.tenantId, okt.tenantId), gte(timeforinger.dato, mandag))),
 
-  const [salg] = await db
+    db
     .select({
       sum: sql<number>`coalesce(sum(${tillegg.antall} * ${tillegg.enhetspris}), 0)`.mapWith(Number),
     })
     .from(tillegg)
-    .where(and(eq(tillegg.tenantId, okt.tenantId), gte(tillegg.opprettet, new Date(forste))));
+    .where(and(eq(tillegg.tenantId, okt.tenantId), gte(tillegg.opprettet, new Date(forste)))),
 
-  // Andelen regnes mot prosjekter det faktisk er ført timer på i perioden.
-  // Prosjekter ingen har rørt skal ikke trekke andelen ned.
-  const [medTimer] = await db
+    // Andelen regnes mot prosjekter det faktisk er ført timer på i perioden.
+    // Prosjekter ingen har rørt skal ikke trekke andelen ned.
+    db
     .select({
       antall: sql<number>`count(distinct ${timeforinger.prosjektId})`.mapWith(Number),
     })
     .from(timeforinger)
-    .where(and(eq(timeforinger.tenantId, okt.tenantId), gte(timeforinger.dato, forste)));
+    .where(and(eq(timeforinger.tenantId, okt.tenantId), gte(timeforinger.dato, forste))),
 
-  const [medTillegg] = await db
+    db
     .select({ antall: sql<number>`count(distinct ${tillegg.prosjektId})`.mapWith(Number) })
     .from(tillegg)
-    .where(and(eq(tillegg.tenantId, okt.tenantId), gte(tillegg.opprettet, new Date(forste))));
+    .where(and(eq(tillegg.tenantId, okt.tenantId), gte(tillegg.opprettet, new Date(forste)))),
 
-  const [ko] = await db
+    db
     .select({
       iKo: sql<number>`count(*) filter (where ${timeforinger.status} = 'i_ko')`.mapWith(Number),
       feilet: sql<number>`count(*) filter (where ${timeforinger.status} = 'feilet')`.mapWith(Number),
     })
     .from(timeforinger)
-    .where(eq(timeforinger.tenantId, okt.tenantId));
+    .where(eq(timeforinger.tenantId, okt.tenantId)),
 
-  const [koTillegg] = await db
+    db
     .select({
       iKo: sql<number>`count(*) filter (where ${tillegg.status} = 'i_ko')`.mapWith(Number),
       feilet: sql<number>`count(*) filter (where ${tillegg.status} = 'feilet')`.mapWith(Number),
     })
     .from(tillegg)
-    .where(eq(tillegg.tenantId, okt.tenantId));
+    .where(eq(tillegg.tenantId, okt.tenantId)),
+  ]);
 
   const grunnlag = medTimer?.antall ?? 0;
 

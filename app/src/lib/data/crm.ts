@@ -214,36 +214,39 @@ export async function hentKundehistorikk(okt: Okt, kundeId: string) {
 
 /** Tallene på dashbordet. */
 export async function hentDashboardtall(okt: Okt) {
-  const [apneOppfolginger] = await db
-    .select({ antall: sql<number>`count(*)`.mapWith(Number) })
-    .from(oppfolginger)
-    .where(and(eq(oppfolginger.tenantId, okt.tenantId), eq(oppfolginger.fullfort, false)));
+  // Fire uavhengige tellinger, samtidig. Se hentCrmNokkeltall: hver tur
+  // til databasen går over Atlanteren, så rekkefølgen koster mer enn
+  // spørringene selv.
+  const [[apneOppfolginger], [ufordelte], [nyeHenvendelser], [apneReklamasjoner]] =
+    await Promise.all([
+      db
+        .select({ antall: sql<number>`count(*)`.mapWith(Number) })
+        .from(oppfolginger)
+        .where(and(eq(oppfolginger.tenantId, okt.tenantId), eq(oppfolginger.fullfort, false))),
 
-  const [ufordelte] = await db
-    .select({ antall: sql<number>`count(*)`.mapWith(Number) })
-    .from(oppfolginger)
-    .where(
-      and(
-        eq(oppfolginger.tenantId, okt.tenantId),
-        eq(oppfolginger.fullfort, false),
-        isNull(oppfolginger.ansvarlig),
-      ),
-    );
+      db
+        .select({ antall: sql<number>`count(*)`.mapWith(Number) })
+        .from(oppfolginger)
+        .where(
+          and(
+            eq(oppfolginger.tenantId, okt.tenantId),
+            eq(oppfolginger.fullfort, false),
+            isNull(oppfolginger.ansvarlig),
+          ),
+        ),
 
-  const [nyeHenvendelser] = await db
-    .select({ antall: sql<number>`count(*)`.mapWith(Number) })
-    .from(henvendelser)
-    .where(and(eq(henvendelser.tenantId, okt.tenantId), eq(henvendelser.trinn, "ny")));
+      db
+        .select({ antall: sql<number>`count(*)`.mapWith(Number) })
+        .from(henvendelser)
+        .where(and(eq(henvendelser.tenantId, okt.tenantId), eq(henvendelser.trinn, "ny"))),
 
-  const [apneReklamasjoner] = await db
-    .select({ antall: sql<number>`count(*)`.mapWith(Number) })
-    .from(reklamasjoner)
-    .where(
-      and(
-        eq(reklamasjoner.tenantId, okt.tenantId),
-        sql`${reklamasjoner.status} <> 'lukket'`,
-      ),
-    );
+      db
+        .select({ antall: sql<number>`count(*)`.mapWith(Number) })
+        .from(reklamasjoner)
+        .where(
+          and(eq(reklamasjoner.tenantId, okt.tenantId), sql`${reklamasjoner.status} <> 'lukket'`),
+        ),
+    ]);
 
   return {
     apneOppfolginger: apneOppfolginger?.antall ?? 0,
@@ -274,16 +277,20 @@ export async function hentCrmNokkeltall(okt: Okt, iDag: string): Promise<CrmNokk
   const syvDager = new Date(Date.now() - 7 * 86_400_000);
   const etDognSiden = new Date(Date.now() - 86_400_000);
 
-  const [nye] = await db
+  // Alle fem er uavhengige. Kjørt etter hverandre ble de fem turer over
+  // Atlanteren — funksjonene står i Ohio, databasen i London, og hver tur
+  // koster rundt 85 ms. Samtidig koster de én.
+  const [[nye], [ubesvart], [rek], [tilbud], [gjenkjop]] = await Promise.all([
+    db
     .select({ antall: sql<number>`count(*)`.mapWith(Number) })
     .from(henvendelser)
     .where(
       // gte, ikke en sql-streng: da vet driveren at kolonnen er et
       // tidspunkt og oversetter Date-objektet riktig.
       and(eq(henvendelser.tenantId, okt.tenantId), gte(henvendelser.mottatt, syvDager)),
-    );
+    ),
 
-  const [ubesvart] = await db
+    db
     .select({ antall: sql<number>`count(*)`.mapWith(Number) })
     .from(henvendelser)
     .where(
@@ -292,9 +299,9 @@ export async function hentCrmNokkeltall(okt: Okt, iDag: string): Promise<CrmNokk
         eq(henvendelser.trinn, "ny"),
         lt(henvendelser.mottatt, etDognSiden),
       ),
-    );
+    ),
 
-  const [rek] = await db
+    db
     .select({
       apne: sql<number>`count(*)`.mapWith(Number),
       overFrist: sql<number>`count(*) filter (where ${reklamasjoner.frist} is not null and ${reklamasjoner.frist} < ${iDag})`.mapWith(
@@ -302,17 +309,17 @@ export async function hentCrmNokkeltall(okt: Okt, iDag: string): Promise<CrmNokk
       ),
     })
     .from(reklamasjoner)
-    .where(and(eq(reklamasjoner.tenantId, okt.tenantId), sql`${reklamasjoner.status} <> 'lukket'`));
+    .where(and(eq(reklamasjoner.tenantId, okt.tenantId), sql`${reklamasjoner.status} <> 'lukket'`)),
 
-  const [tilbud] = await db
+    db
     .select({
       sum: sql<number>`coalesce(sum(${henvendelser.sum}), 0)`.mapWith(Number),
       antall: sql<number>`count(*)`.mapWith(Number),
     })
     .from(henvendelser)
-    .where(and(eq(henvendelser.tenantId, okt.tenantId), eq(henvendelser.trinn, "tilbud_sendt")));
+    .where(and(eq(henvendelser.tenantId, okt.tenantId), eq(henvendelser.trinn, "tilbud_sendt"))),
 
-  const [gjenkjop] = await db
+    db
     .select({ antall: sql<number>`count(*)`.mapWith(Number) })
     .from(garantier)
     .where(
@@ -321,7 +328,8 @@ export async function hentCrmNokkeltall(okt: Okt, iDag: string): Promise<CrmNokk
         eq(garantier.kontaktet, false),
         sql`${garantier.kontaktesEtter} is not null and ${garantier.kontaktesEtter} <= ${iDag}`,
       ),
-    );
+    ),
+  ]);
 
   return {
     nyeSyvDager: nye?.antall ?? 0,

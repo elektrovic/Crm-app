@@ -1017,3 +1017,50 @@ export const synkkjoringer = pgTable(
   },
   (t) => [index("synkkjoring_tid_idx").on(t.tenantId, t.start)],
 );
+
+/**
+ * Samtaler hentet fra Pocket AI.
+ *
+ * Opptakeren tar opp og transkriberer samtaler. Vi henter dem inn én gang
+ * i timen og kobler dem til kunden, så en telefonsamtale havner i
+ * tidslinja ved siden av henvendelsen og prosjektet den handlet om.
+ *
+ * `transkripsjon` står tom med mindre POCKET_AI_LAGRE_TRANSKRIPSJON er satt
+ * til «1». Et transkribert kundeopptak er personopplysninger, og det er
+ * forskjell på å vise et sammendrag i en tidslinje og på å bli et arkiv
+ * for hva kunder har sagt. Standarden er det minste av de to.
+ */
+export const samtaler = pgTable(
+  "samtaler",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+
+    /** Id-en hos Pocket. Gjør henting trygg å kjøre om igjen. */
+    pocketId: text("pocket_id").notNull(),
+
+    tittel: text("tittel"),
+    startet: timestamp("startet", { withTimezone: true }).notNull(),
+    varighetSekunder: integer("varighet_sekunder"),
+    sprak: text("sprak"),
+
+    sammendrag: text("sammendrag"),
+    transkripsjon: text("transkripsjon"),
+
+    /** Den ansatte som tok opp, koblet på e-post. */
+    ansattId: uuid("ansatt_id").references(() => ansatte.id),
+    /** Kunden samtalen handlet om, når vi er sikre nok til å si det. */
+    kundeId: uuid("kunde_id").references(() => kunder.id),
+    /** Sann når et menneske koblet den, usann når vi gjettet. */
+    koblingBekreftet: boolean("kobling_bekreftet").notNull().default(false),
+
+    hentet: timestamp("hentet", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("samtale_pocket_idx").on(t.tenantId, t.pocketId),
+    index("samtale_tid_idx").on(t.tenantId, t.startet),
+    index("samtale_kunde_idx").on(t.tenantId, t.kundeId),
+  ],
+);
