@@ -11,11 +11,26 @@ import type { Rolle } from "@/db/schema";
  * markør. På smal skjerm legger den seg som en topplinje i stedet, slik at
  * flaten også kan brukes fra telefon når lederen er ute.
  */
+/**
+ * Seksjonene i ledelsesflaten.
+ *
+ * `bygget: false` betyr at seksjonen har plass her, men at skjermen ikke
+ * er laget ennå. Den vises med en dempet prikk, slik at man ser hva som
+ * virker i dag uten å måtte trykke seg gjennom for å finne det ut.
+ */
 const PUNKTER = [
-  { sti: "/admin", navn: "Dashboard", eksakt: true },
-  { sti: "/admin/crm", navn: "CRM" },
-  { sti: "/admin/henvendelser", navn: "Henvendelser" },
-  { sti: "/admin/bemanning", navn: "Bemanning" },
+  { sti: "/admin", navn: "Dashboard", eksakt: true, bygget: true },
+  { sti: "/admin/crm", navn: "CRM", bygget: true },
+  { sti: "/admin/henvendelser", navn: "Henvendelser", bygget: true },
+  { sti: "/admin/bemanning", navn: "Bemanning", bygget: true },
+  { sti: "/admin/prosjekter", navn: "Prosjekter", bygget: false },
+  { sti: "/admin/timer", navn: "Timer", bygget: false },
+  { sti: "/admin/tilleggssalg", navn: "Tilleggssalg", bygget: false },
+  { sti: "/admin/kalender", navn: "Kalender", bygget: false },
+  { sti: "/admin/kontrollskjemaer", navn: "Kontrollskjemaer", bygget: false },
+  { sti: "/admin/prislister", navn: "Prislister", bygget: false },
+  { sti: "/admin/avdelinger", navn: "Avdelinger", bygget: false },
+  { sti: "/admin/brukere", navn: "Brukere og roller", bygget: false },
 ];
 
 export function Sidemeny({
@@ -126,6 +141,22 @@ export function Sidemeny({
                   }}
                 >
                   {p.navn}
+                  {!p.bygget && (
+                    <span
+                      aria-label="ikke bygget ennå"
+                      title="Ikke bygget ennå"
+                      style={{
+                        display: "inline-block",
+                        width: 5,
+                        height: 5,
+                        marginLeft: 7,
+                        borderRadius: 999,
+                        background: "currentColor",
+                        opacity: 0.45,
+                        verticalAlign: "middle",
+                      }}
+                    />
+                  )}
                 </Link>
               );
             })}
