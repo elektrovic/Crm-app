@@ -29,7 +29,23 @@
  */
 import "server-only";
 
-const BASE = process.env.TRIPLETEX_BASE_URL ?? "https://api.tripletex.io/v2";
+/**
+ * Produksjonsmiljøet til Tripletex.
+ *
+ * Her sto «api.tripletex.io» før. Den verten finnes ikke i Tripletex sin
+ * dokumentasjon, og den svarer bak en CloudFront-distribusjon som bare tar
+ * GET og HEAD. Alle skrivende kall ble avvist på kanten med 403 og en
+ * HTML-side — altså før Tripletex i det hele tatt så forespørselen.
+ *
+ * Feilen lå der fra klienten ble skrevet, og kom ikke fram før noen hadde
+ * nøkler å prøve med. Et oppsett som aldri har vært kjørt mot ekte API er
+ * ikke verifisert, uansett hvor pent det er skrevet.
+ *
+ * Testmiljøet: https://api-test.tripletex.tech/v2
+ */
+export const STANDARD_BASE = "https://tripletex.no/v2";
+
+const BASE = process.env.TRIPLETEX_BASE_URL ?? STANDARD_BASE;
 
 export class TripletexFeil extends Error {
   constructor(
@@ -85,7 +101,7 @@ export function byggSesjonsforesporsel(
   miljo: Record<string, string | undefined> = process.env,
   naa = Date.now(),
 ): Sesjonsforesporsel {
-  const base = miljo.TRIPLETEX_BASE_URL ?? "https://api.tripletex.io/v2";
+  const base = miljo.TRIPLETEX_BASE_URL ?? STANDARD_BASE;
   const antattUtloper = naa + LEVETID_SEKUNDER * 1000;
 
   const jwt = miljo.TRIPLETEX_JWT?.trim();

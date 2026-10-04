@@ -1,16 +1,20 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { byggSesjonsforesporsel, lesSesjonssvar, TripletexFeil } from "./client";
+import { byggSesjonsforesporsel, lesSesjonssvar, STANDARD_BASE, TripletexFeil } from "./client";
 
 const NAA = Date.parse("2026-10-04T09:00:00Z");
-const BASE = { TRIPLETEX_BASE_URL: "https://api.tripletex.io/v2" };
+// Testmiljøet brukes som fikstur, så ingen leser den som produksjon.
+const BASE = { TRIPLETEX_BASE_URL: "https://api-test.tripletex.tech/v2" };
 
 test("JWT velges når den finnes, og sendes i kroppen", () => {
   const f = byggSesjonsforesporsel({ ...BASE, TRIPLETEX_JWT: "ey.hemmelig.jwt" }, NAA);
 
   assert.equal(f.maate, "jwt");
   assert.equal(f.init.method, "POST");
-  assert.equal(f.url, "https://api.tripletex.io/v2/token/session/:createFromRefreshToken");
+  assert.equal(
+    f.url,
+    "https://api-test.tripletex.tech/v2/token/session/:createFromRefreshToken",
+  );
   // Det viktigste: tokenet skal ikke stå i adressen, der det havner i logger.
   assert.ok(!f.url.includes("ey."), "JWT lekket inn i URL-en");
   assert.deepEqual(JSON.parse(String(f.init.body)), {
@@ -83,5 +87,20 @@ test("manglende token blir en tydelig feil, ikke undefined", () => {
   assert.throws(
     () => lesSesjonssvar({ value: {} }, NAA),
     (f: unknown) => f instanceof TripletexFeil && (f as TripletexFeil).status === 502,
+  );
+});
+
+test("standardadressen peker på Tripletex sitt produksjonsmiljø", () => {
+  // «api.tripletex.io» sto her før. Den verten ligger bak en CloudFront
+  // som bare tar GET og HEAD, så hvert skrivende kall døde med 403 og en
+  // HTML-side før Tripletex så det. Denne testen holder på verten.
+  assert.equal(STANDARD_BASE, "https://tripletex.no/v2");
+});
+
+test("uten TRIPLETEX_BASE_URL brukes produksjonsadressen", () => {
+  const f = byggSesjonsforesporsel({ TRIPLETEX_JWT: "ey.x" }, NAA);
+  assert.ok(
+    f.url.startsWith("https://tripletex.no/v2/"),
+    `pekte på feil vert: ${f.url}`,
   );
 });
