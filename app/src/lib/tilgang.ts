@@ -6,6 +6,7 @@
  * en tilgangsregel; en spørring som aldri returnerer andres rader, er det.
  */
 import "server-only";
+import { redirect } from "next/navigation";
 import type { Session } from "next-auth";
 import { auth } from "@/auth";
 import type { Rolle } from "@/db/schema";
@@ -29,6 +30,24 @@ export class IngenTilgangFeil extends Error {
 
 /** Henter økten, eller kaster. Brukes øverst i hver server action. */
 export async function krevOkt(): Promise<Okt> {
+  const okt = await auth();
+  if (!okt?.user?.id) throw new IkkeInnloggetFeil();
+
+  // Et midlertidig passord skal byttes før brukeren får gjøre noe annet.
+  // Håndheves her, ikke i en layout: da gjelder det hver eneste side og
+  // hvert eneste API-kall, og ikke bare de noen husket å dekke.
+  if (okt.user.maaByttePassord) redirect("/bytt-passord");
+
+  return okt.user;
+}
+
+/**
+ * Som krevOkt, men uten å sende brukeren videre til passordbytte.
+ *
+ * Finnes for én ting: selve siden der passordet byttes. Uten den ville
+ * den sendt brukeren til seg selv i en evig runde.
+ */
+export async function krevOktUtenBytte(): Promise<Okt> {
   const okt = await auth();
   if (!okt?.user?.id) throw new IkkeInnloggetFeil();
   return okt.user;

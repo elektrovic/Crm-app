@@ -57,6 +57,13 @@
       "when": 1791120775257,
       "tag": "0007_wide_dreaming_celestial",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791144936703,
+      "tag": "0008_brukere_med_passord",
+      "breakpoints": true
     }
   ]
 }

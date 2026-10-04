@@ -13,6 +13,7 @@
  * I demomodus finnes det i tillegg en dør uten passord. Se lib/demo.ts for
  * hvorfor den finnes og hva som holder den lukket.
  */
+import { randomUUID } from "node:crypto";
 import NextAuth, { type DefaultSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
@@ -22,6 +23,7 @@ import { db } from "./db";
 import { ansatte, type Avdeling, type Rolle } from "./db/schema";
 import { DEMO_INNLOGGING, DEMO_PASSORD } from "./lib/demo";
 import { likeHemmeligheter } from "./lib/krypto";
+import { lagHash, sjekkPassord } from "./lib/passord";
 
 /** Feltene Montørappen legger på den innloggede brukeren. */
 export type Brukerprofil = {
@@ -35,6 +37,8 @@ export type Brukerprofil = {
   farge: string;
   tripletexEmployeeId: number | null;
   abaxVehicleId: string | null;
+  /** Sant når passordet er midlertidig og må byttes før noe annet. */
+  maaByttePassord: boolean;
 };
 
 declare module "next-auth" {
@@ -87,6 +91,79 @@ const demoProvider = Credentials({
   },
 });
 
+const TENANT = process.env.DEFAULT_TENANT_ID ?? "halland";
+
+/**
+ * En gyldig hash av et passord ingen har.
+ *
+ * Brukes bare for å bruke tid når e-posten ikke finnes, slik at svaret
+ * tar like lang tid uansett. Den regnes ut én gang ved oppstart.
+ */
+const FALSK_HASH_LOVNAD = lagHash(randomUUID());
+let FALSK_HASH: string | null = null;
+void FALSK_HASH_LOVNAD.then((h) => {
+  FALSK_HASH = h;
+});
+
+/**
+ * Innlogging med e-post og passord.
+ *
+ * Dette er hovedveien inn hos Halland: de bruker ikke Microsoft-kontoer,
+ * så brukerne opprettes i portalen og får et passord der.
+ *
+ * To ting er verdt å si høyt om måten den feiler på. Den sier aldri om
+ * det var e-posten eller passordet som var galt — ellers er
+ * innloggingsskjermen en måte å finne ut hvem som jobber her. Og den
+ * bruker like lang tid på en ukjent e-post som på et feil passord, ved å
+ * regne ut en hash uansett. Uten det kan man måle seg fram til hvilke
+ * adresser som finnes.
+ */
+const passordProvider = Credentials({
+  id: "passord",
+  name: "E-post og passord",
+  credentials: {
+    epost: { label: "E-post", type: "email" },
+    passord: { label: "Passord", type: "password" },
+  },
+  async authorize(data) {
+    const epost = typeof data?.epost === "string" ? data.epost.trim().toLowerCase() : "";
+    const passord = typeof data?.passord === "string" ? data.passord : "";
+    if (!epost || !passord) return null;
+
+    const rad = await db.query.ansatte.findFirst({
+      where: and(eq(ansatte.epost, epost), eq(ansatte.tenantId, TENANT)),
+    });
+
+    // Finnes ikke brukeren, regner vi likevel ut en hash. Det koster de
+    // samme millisekundene, og da lekker ikke svartiden hvem som finnes.
+    if (!rad?.aktiv || !rad.passordHash) {
+      await sjekkPassord(passord, FALSK_HASH ?? (await FALSK_HASH_LOVNAD));
+      return null;
+    }
+
+    if (!(await sjekkPassord(passord, rad.passordHash))) return null;
+
+    await db
+      .update(ansatte)
+      .set({ sisteInnlogging: new Date() })
+      .where(eq(ansatte.id, rad.id));
+
+    return {
+      id: rad.id,
+      navn: rad.navn,
+      epost: rad.epost,
+      rolle: rad.rolle,
+      avdeling: rad.avdeling,
+      tenantId: rad.tenantId,
+      initialer: rad.initialer,
+      farge: rad.farge,
+      tripletexEmployeeId: rad.tripletexEmployeeId,
+      abaxVehicleId: rad.abaxVehicleId,
+      maaByttePassord: rad.maaByttePassord,
+    } as unknown as never;
+  },
+});
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
@@ -95,6 +172,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
       issuer: process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER,
     }),
+    passordProvider,
     ...(DEMO_INNLOGGING ? [demoProvider] : []),
   ],
   callbacks: {
@@ -108,6 +186,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Demoprovideren har alt slått opp i databasen i authorize, og
       // returnerte null hvis den ansatte ikke fantes eller var sperret.
       if (account?.provider === "demo") return DEMO_INNLOGGING;
+      // Passordprovideren har alt slått opp raden og sjekket hashen.
+      if (account?.provider === "passord") return true;
 
       const oid = lesOid(profile);
       if (!oid) return false;
@@ -153,6 +233,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         tenantId: String(token.tenantId ?? ""),
         initialer: String(token.initialer ?? ""),
         farge: String(token.farge ?? "#2563EB"),
+        maaByttePassord: token.maaByttePassord === true,
         tripletexEmployeeId: (token.tripletexEmployeeId as number | null) ?? null,
         abaxVehicleId: (token.abaxVehicleId as string | null) ?? null,
       };
@@ -172,6 +253,7 @@ function tilToken(p: Brukerprofil) {
     tenantId: p.tenantId,
     initialer: p.initialer,
     farge: p.farge,
+    maaByttePassord: p.maaByttePassord,
     tripletexEmployeeId: p.tripletexEmployeeId,
     abaxVehicleId: p.abaxVehicleId,
   };

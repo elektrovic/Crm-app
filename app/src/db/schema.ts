@@ -45,10 +45,35 @@ export const ansatte = pgTable(
       .notNull()
       .references(() => tenants.id),
 
-    /** Objekt-ID fra Entra ID. Dette er den egentlige identiteten. */
-    entraOid: text("entra_oid").notNull(),
+    /**
+     * Objekt-ID fra Entra ID, for de som logger inn med Microsoft.
+     *
+     * Valgfri. Halland bruker ikke Microsoft-innlogging, så de fleste
+     * brukerne har passord i stedet. Står begge, virker begge veier inn.
+     */
+    entraOid: text("entra_oid"),
+
+    /** E-posten er brukernavnet. Den er unik per kunde, ikke globalt. */
     epost: text("epost").notNull(),
     navn: text("navn").notNull(),
+
+    /**
+     * scrypt av passordet. Se lib/passord.ts — passordet selv lagres
+     * aldri noe sted.
+     *
+     * Null betyr «kan ikke logge inn med passord», ikke «tomt passord».
+     */
+    passordHash: text("passord_hash"),
+
+    /**
+     * Satt når passordet er et midlertidig et lederen laget. Da tvinges
+     * et nytt ved første innlogging — ellers blir lappen med det
+     * midlertidige passordet liggende i bilen til jul.
+     */
+    maaByttePassord: boolean("maa_bytte_passord").notNull().default(false),
+
+    /** Siste gang brukeren var inne. Viser hvem som aldri kom i gang. */
+    sisteInnlogging: timestamp("siste_innlogging", { withTimezone: true }),
 
     /** Kobling mot Tripletex-ansatt, brukes ved timeføring. */
     tripletexEmployeeId: integer("tripletex_employee_id"),
@@ -70,6 +95,9 @@ export const ansatte = pgTable(
   },
   (t) => [
     uniqueIndex("ansatte_entra_oid_idx").on(t.entraOid),
+    // E-posten er brukernavnet, så den må være unik innenfor kunden.
+    // To rader med samme e-post ville gjort innlogging til en lotteri.
+    uniqueIndex("ansatte_epost_idx").on(t.tenantId, t.epost),
     index("ansatte_tenant_idx").on(t.tenantId),
   ],
 );

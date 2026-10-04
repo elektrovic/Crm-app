@@ -147,17 +147,22 @@ fi
 si "Oppdaterer tabellene …"
 (cd "$app" && npm run db:migrate)
 
-# -------------------------------------------------------- testdata
+# ------------------------------------------------------ første bruker
 #
-# Bare når basen er tom. Har du jobbet med noe lokalt, skal det ikke bli
-# overskrevet av tre oppdiktede ansatte fordi du startet appen på nytt.
+# Ingen demodata. Du ba om en portal uten kulisser, og tre oppdiktede
+# ansatte gjør det umulig å se om det du nettopp bygget virker på ekte
+# data eller bare på dem.
+#
+# I stedet lages din egen administrator, én gang, hvis basen er tom.
+# Resten av brukerne lager du inne i portalen.
+#
+# Vil du likevel ha testdata å klikke rundt i:  npm run db:demodata
+# Vil du tømme alt igjen:                       npm run db:tom
 antall="$(psql "$BASE_URL" -tAc "select count(*) from ansatte" 2>/dev/null | tr -d ' ' || true)"
 [ -n "$antall" ] || antall=0
 if [ "$antall" = "0" ]; then
-  si "Basen er tom — legger inn testdata …"
-  # Flagget må settes: demodata.ts nekter å kjøre uten, nettopp for at
-  # den aldri skal kunne gå av seg selv mot en ekte base.
-  (cd "$app" && SEED_VED_BYGG=1 npm run db:demodata)
+  si "Basen er tom — lager din administrator …"
+  (cd "$app" && npm run --silent db:forstebruker -- "${MONTOR_NAVN:-Victor Halland}" "${MONTOR_EPOST:-victor@hallandgroup.no}")
 fi
 
 si "Starter appen på http://localhost:3000"

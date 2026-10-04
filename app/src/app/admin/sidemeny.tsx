@@ -29,7 +29,7 @@ const PUNKTER = [
   { sti: "/admin/kontrollskjemaer", navn: "Kontrollskjemaer", bygget: false },
   { sti: "/admin/prislister", navn: "Prislister", bygget: false },
   { sti: "/admin/avdelinger", navn: "Avdelinger", bygget: false },
-  { sti: "/admin/brukere", navn: "Brukere og roller", bygget: false },
+  { sti: "/admin/brukere", navn: "Brukere og roller" },
 ];
 
 export function Sidemeny({
