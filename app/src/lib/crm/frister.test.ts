@@ -17,6 +17,8 @@ function rad(over: Partial<Oppfolgingsrad> & { id: string; frist: string }): Opp
     ansvarlig: "11111111-1111-4111-8111-111111111111",
     ansvarligNavn: "Marius Kvam",
     kundeNavn: "Sameiet Ullevålsveien 71",
+    telefon: "922 41 088",
+    henvendelseId: null,
     fullfort: false,
     ...over,
   };

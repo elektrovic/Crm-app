@@ -50,6 +50,13 @@ export type Oppfolgingsrad = {
   ansvarlig: string | null;
   ansvarligNavn: string | null;
   kundeNavn: string | null;
+  /**
+   * Nummeret man ringer. Uten det her må man innom Kunder for hver eneste
+   * sak — og da ringer man sjeldnere enn man burde.
+   */
+  telefon: string | null;
+  /** Saken raden kom av, når den kom av en. */
+  henvendelseId: string | null;
   fullfort: boolean;
 };
 

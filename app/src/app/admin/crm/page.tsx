@@ -9,6 +9,8 @@ import {
 import { iDag } from "@/lib/data/dagen";
 import { sorterOppfolginger, tellFrister } from "@/lib/crm/frister";
 import { Celle, Etikett, Kort, Pille, Tabell, visDato } from "@/components/ui";
+import Link from "next/link";
+import { Ring } from "@/components/ring";
 import { NyOppfolging, Oppfolgingsrad } from "./oppfolging-handlinger";
 import { Glipper } from "./glipper";
 
@@ -89,7 +91,23 @@ export default async function Oppfolging() {
         {rader.map((r) => (
           <tr key={r.id}>
             <Celle hoved>{r.hva}</Celle>
-            <Celle>{r.kundeNavn ?? "—"}</Celle>
+            <Celle under={r.telefon ? undefined : "uten nummer"}>
+              {r.henvendelseId ? (
+                <Link
+                  href={`/admin/crm/sak/${r.henvendelseId}`}
+                  style={{ color: "var(--tekst)", textDecoration: "none" }}
+                >
+                  {r.kundeNavn ?? "Åpne saken"}
+                </Link>
+              ) : (
+                (r.kundeNavn ?? "—")
+              )}
+              {r.telefon && (
+                <div style={{ marginTop: 2 }}>
+                  <Ring nummer={r.telefon} />
+                </div>
+              )}
+            </Celle>
             <Celle tall under={r.tekst}>
               {visDato(r.frist)}
             </Celle>

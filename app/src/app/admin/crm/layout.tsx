@@ -4,6 +4,7 @@ import { iDag } from "@/lib/data/dagen";
 import { Sidetittel } from "@/components/ui";
 import { Nokkeltallskort } from "../nokkeltallskort";
 import { Fanerad } from "./fanerad";
+import { Sokefelt } from "./sokefelt";
 
 const NOK = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 });
 
@@ -72,6 +73,8 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
           tall={NOK.format(tall.gjenkjopKlare)}
         />
       </div>
+
+      <Sokefelt />
 
       <Fanerad />
       {children}

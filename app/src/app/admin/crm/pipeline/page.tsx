@@ -4,6 +4,8 @@ import { hentProsjektvalg } from "@/lib/data/kalender";
 import { triageErSattOpp } from "@/lib/ai/triage";
 import { PIPELINE, type PipelineTrinn } from "@/db/schema";
 import { Etikett, Kort, Pille, kroner } from "@/components/ui";
+import Link from "next/link";
+import { Ring } from "@/components/ring";
 import { NyHenvendelse, Trinnvelger } from "../crm-handlinger";
 import { HenvendelserSkjerm } from "./henvendelser-skjerm";
 
@@ -104,9 +106,17 @@ export default async function Pipeline() {
                       gap: 9,
                     }}
                   >
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--tekst)" }}>
+                    <Link
+                      href={`/admin/crm/sak/${k.id}`}
+                      style={{
+                        fontSize: 13.5,
+                        fontWeight: 700,
+                        color: "var(--tekst)",
+                        textDecoration: "none",
+                      }}
+                    >
                       {k.kundeNavn ?? k.avsenderNavn ?? "Ukjent avsender"}
-                    </div>
+                    </Link>
                     {k.aiHastegrad === "akutt" && <Pille farge="rod">Akutt</Pille>}
                     {k.aiHastegrad === "hoy" && <Pille farge="oransje">Haster</Pille>}
                   </div>
@@ -125,6 +135,12 @@ export default async function Pipeline() {
                   >
                     {k.innhold}
                   </p>
+
+                  {k.telefon && (
+                    <div style={{ marginTop: 6 }}>
+                      <Ring nummer={k.telefon} />
+                    </div>
+                  )}
 
                   <div
                     style={{

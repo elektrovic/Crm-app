@@ -6,7 +6,7 @@
  * rutene som kaller dem.
  */
 import "server-only";
-import { and, asc, desc, eq, gte, isNull, lt, notInArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, lt, notInArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   ansatte,
@@ -20,6 +20,7 @@ import {
   type Kanal,
   type PipelineTrinn,
 } from "@/db/schema";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { Okt } from "../tilgang";
 import type { Oppfolgingsrad } from "../crm/frister";
 
@@ -33,10 +34,15 @@ export async function hentOppfolginger(okt: Okt): Promise<Oppfolgingsrad[]> {
       ansvarlig: oppfolginger.ansvarlig,
       ansvarligNavn: ansatte.navn,
       kundeNavn: kunder.navn,
+      // Kundens nummer først; står saken uten kunde, bruker vi nummeret
+      // den som ringte oppga.
+      telefon: sql<string | null>`coalesce(${kunder.telefon}, ${henvendelser.avsenderTelefon})`,
+      henvendelseId: oppfolginger.henvendelseId,
     })
     .from(oppfolginger)
     .leftJoin(ansatte, eq(oppfolginger.ansvarlig, ansatte.id))
     .leftJoin(kunder, eq(oppfolginger.kundeId, kunder.id))
+    .leftJoin(henvendelser, eq(oppfolginger.henvendelseId, henvendelser.id))
     .where(and(eq(oppfolginger.tenantId, okt.tenantId), eq(oppfolginger.fullfort, false)));
 
   return rader;
@@ -57,6 +63,7 @@ export type PipelineKort = {
   harNesteSteg: boolean;
   kundeId: string | null;
   prosjektId: string | null;
+  telefon: string | null;
 };
 
 export async function hentPipeline(okt: Okt): Promise<PipelineKort[]> {
@@ -74,6 +81,7 @@ export async function hentPipeline(okt: Okt): Promise<PipelineKort[]> {
       ansvarligNavn: ansatte.navn,
       kundeId: henvendelser.kundeId,
       prosjektId: henvendelser.prosjektId,
+      telefon: sql<string | null>`coalesce(${henvendelser.avsenderTelefon}, ${kunder.telefon})`,
       harNesteSteg: sql<boolean>`exists (
         select 1 from ${oppfolginger}
         where ${oppfolginger.henvendelseId} = ${henvendelser.id}
@@ -798,4 +806,195 @@ export async function hentUkesoppsummering(
       .filter((g): g is typeof g & { naar: Date } => g.naar !== null)
       .map((g) => ({ id: g.id, hva: g.hva, naar: g.naar, hvem: g.hvem })),
   };
+}
+
+/* --------------------------------------------------- én sak */
+
+export type Sak = {
+  id: string;
+  kanal: Kanal;
+  mottatt: Date;
+  innhold: string;
+  trinn: PipelineTrinn;
+  avsenderNavn: string | null;
+  avsenderTelefon: string | null;
+  avsenderEpost: string | null;
+  sum: number | null;
+  kundeId: string | null;
+  kundeNavn: string | null;
+  kundeTelefon: string | null;
+  ansvarligNavn: string | null;
+  prosjektId: string | null;
+  prosjektNummer: string | null;
+  prosjektNavn: string | null;
+  aiSammendrag: string | null;
+  oppfolginger: { id: string; hva: string; frist: string; fullfort: boolean }[];
+};
+
+/**
+ * Alt om én henvendelse.
+ *
+ * Saken fantes bare som et lite kort i tavla. Skulle man se helheten —
+ * hvem det var, hva som ble sagt, hva som er avtalt videre, hvilket
+ * prosjekt det ble — måtte man gjennom fire faner og huske underveis.
+ */
+export async function hentSak(okt: Okt, id: string): Promise<Sak | null> {
+  const [rad] = await db
+    .select({
+      id: henvendelser.id,
+      kanal: henvendelser.kanal,
+      mottatt: henvendelser.mottatt,
+      innhold: henvendelser.innhold,
+      trinn: henvendelser.trinn,
+      avsenderNavn: henvendelser.avsenderNavn,
+      avsenderTelefon: henvendelser.avsenderTelefon,
+      avsenderEpost: henvendelser.avsenderEpost,
+      sum: henvendelser.sum,
+      kundeId: henvendelser.kundeId,
+      kundeNavn: kunder.navn,
+      kundeTelefon: kunder.telefon,
+      ansvarligNavn: ansatte.navn,
+      prosjektId: henvendelser.prosjektId,
+      prosjektNummer: prosjekter.nummer,
+      prosjektNavn: prosjekter.navn,
+      aiSammendrag: henvendelser.aiSammendrag,
+    })
+    .from(henvendelser)
+    .leftJoin(kunder, eq(henvendelser.kundeId, kunder.id))
+    .leftJoin(ansatte, eq(henvendelser.ansvarlig, ansatte.id))
+    .leftJoin(prosjekter, eq(henvendelser.prosjektId, prosjekter.id))
+    .where(and(eq(henvendelser.id, id), eq(henvendelser.tenantId, okt.tenantId)));
+
+  if (!rad) return null;
+
+  const frister = await db
+    .select({
+      id: oppfolginger.id,
+      hva: oppfolginger.hva,
+      frist: oppfolginger.frist,
+      fullfort: oppfolginger.fullfort,
+    })
+    .from(oppfolginger)
+    .where(
+      and(eq(oppfolginger.tenantId, okt.tenantId), eq(oppfolginger.henvendelseId, rad.id)),
+    )
+    .orderBy(asc(oppfolginger.frist));
+
+  return { ...rad, sum: rad.sum === null ? null : Number(rad.sum), oppfolginger: frister };
+}
+
+/* ------------------------------------------------- søk */
+
+export type Sokresultat = {
+  slag: "kunde" | "sak" | "prosjekt";
+  id: string;
+  tittel: string;
+  under: string | null;
+  lenke: string;
+};
+
+/**
+ * Ett søk på tvers av kunder, saker og prosjekter.
+ *
+ * Før dette måtte man vite hvilken fane man skulle lete i før man kunne
+ * lete. Det er en rar rekkefølge: man husker et navn eller et nummer, ikke
+ * hvilken tabell det ligger i.
+ *
+ * Telefonnummer søkes på sifrene alene, så «92241088», «922 41 088» og
+ * «+47 922 41 088» finner det samme. Uten det ville nummersøk vært et
+ * lotteri avhengig av hvordan nummeret ble tastet inn den gangen.
+ */
+export async function sok(okt: Okt, raatt: string, maks = 8): Promise<Sokresultat[]> {
+  const q = raatt.trim();
+  if (q.length < 2) return [];
+
+  const m = `%${q.toLowerCase()}%`;
+  const sifre = q.replace(/\D/g, "");
+  // Færre enn tre sifre er ikke et nummersøk, det er en tilfeldighet.
+  const nummersok = sifre.length >= 3 ? `%${sifre}%` : null;
+
+  const treffPaaNummer = (kolonne: AnyPgColumn) =>
+    nummersok
+      ? sql`regexp_replace(coalesce(${kolonne}, ''), '\\D', '', 'g') like ${nummersok}`
+      : sql`false`;
+
+  const [k, h, p] = await Promise.all([
+    db
+      .select({ id: kunder.id, navn: kunder.navn, telefon: kunder.telefon, type: kunder.type })
+      .from(kunder)
+      .where(
+        and(
+          eq(kunder.tenantId, okt.tenantId),
+          or(sql`lower(${kunder.navn}) like ${m}`, treffPaaNummer(kunder.telefon)),
+        ),
+      )
+      .limit(maks),
+
+    db
+      .select({
+        id: henvendelser.id,
+        navn: henvendelser.avsenderNavn,
+        innhold: henvendelser.innhold,
+        telefon: henvendelser.avsenderTelefon,
+        trinn: henvendelser.trinn,
+      })
+      .from(henvendelser)
+      .where(
+        and(
+          eq(henvendelser.tenantId, okt.tenantId),
+          or(
+            sql`lower(coalesce(${henvendelser.avsenderNavn}, '')) like ${m}`,
+            sql`lower(${henvendelser.innhold}) like ${m}`,
+            treffPaaNummer(henvendelser.avsenderTelefon),
+          ),
+        ),
+      )
+      .orderBy(desc(henvendelser.mottatt))
+      .limit(maks),
+
+    db
+      .select({
+        id: prosjekter.id,
+        nummer: prosjekter.nummer,
+        navn: prosjekter.navn,
+        kunde: prosjekter.kunde,
+      })
+      .from(prosjekter)
+      .where(
+        and(
+          eq(prosjekter.tenantId, okt.tenantId),
+          eq(prosjekter.aktiv, true),
+          or(
+            sql`lower(${prosjekter.navn}) like ${m}`,
+            sql`lower(${prosjekter.nummer}) like ${m}`,
+            sql`lower(coalesce(${prosjekter.kunde}, '')) like ${m}`,
+          ),
+        ),
+      )
+      .limit(maks),
+  ]);
+
+  return [
+    ...k.map((r): Sokresultat => ({
+      slag: "kunde",
+      id: r.id,
+      tittel: r.navn,
+      under: [r.type, r.telefon].filter(Boolean).join(" · ") || null,
+      lenke: `/admin/crm/kunder/${r.id}`,
+    })),
+    ...h.map((r): Sokresultat => ({
+      slag: "sak",
+      id: r.id,
+      tittel: r.navn ?? r.innhold.slice(0, 60),
+      under: r.trinn,
+      lenke: `/admin/crm/sak/${r.id}`,
+    })),
+    ...p.map((r): Sokresultat => ({
+      slag: "prosjekt",
+      id: r.id,
+      tittel: `${r.nummer} ${r.navn}`,
+      under: r.kunde,
+      lenke: `/prosjekt/${r.nummer}`,
+    })),
+  ];
 }
