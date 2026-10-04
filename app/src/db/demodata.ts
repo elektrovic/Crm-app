@@ -1,4 +1,13 @@
 /**
+ * ADVARSEL: Denne kjøres ikke lenger som del av bygget.
+ *
+ * Demodataene ble lagt inn i produksjonsbasen og måtte ryddes ut for hånd.
+ * Et byggesteg som skriver oppdiktede kunder inn i en base med ekte
+ * prosjekter fra Tripletex er en felle, ikke en bekvemmelighet — særlig
+ * fordi den bare slår til når basen tilfeldigvis er tom.
+ *
+ * Skal den kjøres, må det være med vilje:  npm run db:demodata
+ *
  * Legger inn demodata under bygging — men bare når noen har bedt om det.
  *
  * Samme praktiske grunn som migrer.ts: den som setter opp systemet har
