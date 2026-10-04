@@ -1,29 +1,13 @@
-import { krevRolle } from "@/lib/tilgang";
-import { hentHenvendelser } from "@/lib/data/crm";
-import { triageErSattOpp } from "@/lib/ai/triage";
-import { Sidetittel } from "@/components/ui";
-import { HenvendelserSkjerm } from "./henvendelser-skjerm";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Henvendelser · Montørappen" };
-
-export default async function Henvendelser() {
-  const okt = await krevRolle("leder");
-  const rader = await hentHenvendelser(okt);
-
-  return (
-    <>
-      <Sidetittel
-        tittel="Henvendelser"
-        under="Telefon, e-post og nettskjema i én liste"
-      />
-      <HenvendelserSkjerm
-        henvendelser={rader.map((h) => ({
-          ...h,
-          mottatt: h.mottatt.toISOString(),
-          aiVurdert: h.aiVurdert?.toISOString() ?? null,
-        }))}
-        kanTriagere={triageErSattOpp()}
-      />
-    </>
-  );
+/**
+ * Henvendelser bodde to steder: her, med AI-triage, og som fane i CRM-en.
+ * To lister over det samme er én liste for mye — man rekker å glemme en
+ * sak i den man ikke åpnet. Alt ligger nå under CRM.
+ *
+ * Sida blir stående og peker videre, så gamle bokmerker og lenker i
+ * e-poster fortsatt virker.
+ */
+export default function GammelHenvendelsesside() {
+  redirect("/admin/crm/pipeline");
 }

@@ -1,10 +1,12 @@
 import { krevRolle } from "@/lib/tilgang";
-import { hentKundevalg, hentPipeline } from "@/lib/data/crm";
+import { hentHenvendelser, hentKundevalg, hentPipeline } from "@/lib/data/crm";
+import { triageErSattOpp } from "@/lib/ai/triage";
 import { PIPELINE, type PipelineTrinn } from "@/db/schema";
 import { Etikett, Kort, Pille, kroner } from "@/components/ui";
 import { NyHenvendelse, Trinnvelger } from "../crm-handlinger";
+import { HenvendelserSkjerm } from "./henvendelser-skjerm";
 
-export const metadata = { title: "Pipeline · CRM" };
+export const metadata = { title: "Henvendelser · CRM" };
 
 /**
  * Pipelinen som kolonner, slik prototypen viser den.
@@ -38,7 +40,11 @@ function alder(mottatt: Date): string {
 
 export default async function Pipeline() {
   const okt = await krevRolle("leder");
-  const [kort, kunder] = await Promise.all([hentPipeline(okt), hentKundevalg(okt)]);
+  const [kort, kunder, rader] = await Promise.all([
+    hentPipeline(okt),
+    hentKundevalg(okt),
+    hentHenvendelser(okt),
+  ]);
 
   // Tapt vises ikke i tavla — den ville bare fylt en kolonne med historikk.
   const synligeTrinn = PIPELINE.filter((t) => t !== "tapt");
@@ -149,6 +155,18 @@ export default async function Pipeline() {
           </div>
           );
         })}
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6 }}>
+        <Etikett>Alle henvendelser</Etikett>
+        <HenvendelserSkjerm
+          henvendelser={rader.map((h) => ({
+            ...h,
+            mottatt: h.mottatt.toISOString(),
+            aiVurdert: h.aiVurdert?.toISOString() ?? null,
+          }))}
+          kanTriagere={triageErSattOpp()}
+        />
       </div>
     </>
   );

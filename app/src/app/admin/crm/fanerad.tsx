@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const FANER = [
-  { sti: "/admin/crm", navn: "Oppfølging i dag", eksakt: true },
+  { sti: "/admin/crm", navn: "I dag", eksakt: true },
   { sti: "/admin/crm/pipeline", navn: "Henvendelser" },
   { sti: "/admin/crm/kunder", navn: "Kunder" },
   { sti: "/admin/crm/reklamasjoner", navn: "Reklamasjoner" },

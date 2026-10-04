@@ -1,5 +1,6 @@
 import { krevRolle } from "@/lib/tilgang";
 import { hentKunder } from "@/lib/data/crm";
+import Link from "next/link";
 import { Celle, Pille, Tabell, kroner, visDato } from "@/components/ui";
 import type { Avdeling, Kundestatus } from "@/db/schema";
 import { KundeSkjema } from "../crm-handlinger";
@@ -31,7 +32,14 @@ export default async function Kunder() {
         return (
           <tr key={k.id}>
             <Celle hoved under={k.kontaktperson}>
-              {k.navn}
+              {/* Navnet er veien inn til hele historikken. Uten lenken her
+                  er kundekortet et sted man må vite om for å finne. */}
+              <Link
+                href={`/admin/crm/kunder/${k.id}`}
+                style={{ color: "var(--tekst)", textDecoration: "none" }}
+              >
+                {k.navn}
+              </Link>
             </Celle>
             <Celle>{k.type ?? "—"}</Celle>
             <Celle>{k.avdeling ?? "—"}</Celle>

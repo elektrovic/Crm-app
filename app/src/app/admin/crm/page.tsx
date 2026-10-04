@@ -1,9 +1,16 @@
 import { krevRolle } from "@/lib/tilgang";
-import { hentAnsattvalg, hentKundevalg, hentOppfolginger } from "@/lib/data/crm";
+import {
+  hentAnsattvalg,
+  hentKundevalg,
+  hentOppfolginger,
+  hentStilleKunder,
+  hentUtenNesteSteg,
+} from "@/lib/data/crm";
 import { iDag } from "@/lib/data/dagen";
 import { sorterOppfolginger, tellFrister } from "@/lib/crm/frister";
 import { Celle, Etikett, Kort, Pille, Tabell, visDato } from "@/components/ui";
 import { NyOppfolging, Oppfolgingsrad } from "./oppfolging-handlinger";
+import { Glipper } from "./glipper";
 
 export const metadata = { title: "Oppfølging · CRM" };
 
@@ -14,16 +21,20 @@ export const metadata = { title: "Oppfølging · CRM" };
 export default async function Oppfolging() {
   const okt = await krevRolle("leder");
   const dato = iDag();
-  const [alle, ansatte, kunder] = await Promise.all([
+  const [alle, ansatte, kunder, utenNesteSteg, stille] = await Promise.all([
     hentOppfolginger(okt),
     hentAnsattvalg(okt),
     hentKundevalg(okt),
+    hentUtenNesteSteg(okt, dato),
+    hentStilleKunder(okt),
   ]);
   const rader = sorterOppfolginger(alle, dato);
   const tall = tellFrister(rader);
 
   return (
     <>
+      <Glipper utenNesteSteg={utenNesteSteg} stille={stille} />
+
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <Kort style={{ flex: "1 1 160px", padding: "14px 16px" }}>
           <Etikett>Over frist</Etikett>
