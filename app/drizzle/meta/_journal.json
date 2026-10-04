@@ -15,6 +15,13 @@
       "when": 1791101538673,
       "tag": "0001_chilly_korg",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791104232576,
+      "tag": "0002_closed_baron_strucker",
+      "breakpoints": true
     }
   ]
 }

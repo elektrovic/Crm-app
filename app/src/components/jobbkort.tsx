@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Jobbkort as Kort_ } from "@/lib/data/kalender";
 import { Etikett, IkonFlis, Kort, RadVerdi, Sidetittel } from "@/components/ui";
 import { Pakkeliste } from "./pakkeliste";
+import { Bildeopplasting } from "./bildeopplasting";
 
 /**
  * Alt om én jobb, på én skjerm.
@@ -14,10 +15,13 @@ import { Pakkeliste } from "./pakkeliste";
 export function Jobbkort({
   jobb,
   kanRedigere,
+  kanTaBilde = false,
 }: {
   jobb: Kort_;
   /** Ledelsen kan fjerne pakkelinjer; montøren krysser bare av. */
   kanRedigere: boolean;
+  /** Den som er satt opp på jobben kan dokumentere den. */
+  kanTaBilde?: boolean;
 }) {
   const dato = new Intl.DateTimeFormat("nb-NO", {
     weekday: "long",
@@ -152,9 +156,19 @@ export function Jobbkort({
       />
 
       {/* Bilder */}
-      {jobb.bilder.length > 0 && (
+      {(jobb.bilder.length > 0 || kanTaBilde) && (
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
           <Etikett>Bilder</Etikett>
+          {kanTaBilde && (
+            <Kort>
+              <Bildeopplasting
+                tildelingId={jobb.tildelingId}
+                slag="jobb"
+                merke="Ta bilde fra jobben"
+                hjelpetekst="Havner i dokumentarkivet på prosjektet i Tripletex ved neste synk."
+              />
+            </Kort>
+          )}
           <div
             style={{
               display: "grid",
@@ -197,8 +211,30 @@ export function Jobbkort({
                     Arkivert i Tripletex
                   </div>
                 )}
-                <figcaption style={{ fontSize: 10.5, color: "var(--svak)", marginTop: 3 }}>
-                  {b.slag === "planlegging" ? "Fra planleggingen" : "Fra jobben"}
+                <figcaption style={{ fontSize: 10.5, marginTop: 3 }}>
+                  <span style={{ color: "var(--svak)" }}>
+                    {b.slag === "planlegging" ? "Fra planleggingen" : "Fra jobben"}
+                  </span>
+                  {/* Om bildet har nådd Tripletex er det eneste man egentlig
+                      lurer på — kontoret finner det ikke før det har det. */}
+                  <span
+                    style={{
+                      display: "block",
+                      fontFamily: "var(--font-mono)",
+                      color: b.feilmelding
+                        ? "var(--rod)"
+                        : b.iTripletex
+                          ? "var(--gronn)"
+                          : "var(--oransje)",
+                    }}
+                    title={b.feilmelding ?? undefined}
+                  >
+                    {b.feilmelding
+                      ? "feilet"
+                      : b.iTripletex
+                        ? "i Tripletex"
+                        : "venter på synk"}
+                  </span>
                 </figcaption>
               </figure>
             ))}

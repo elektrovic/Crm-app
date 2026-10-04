@@ -88,7 +88,9 @@ async function seed() {
         entraOid: "seed-oid-marius",
         epost: "marius@hallandgroup.no",
         navn: "Marius Kvam",
-        rolle: "leder",
+        // Daglig leder. `admin` og ikke `leder`, fordi `leder` er bundet til
+        // én avdeling — og daglig leder skal se alle tre.
+        rolle: "admin",
         avdeling: "Elektro",
         farge: "#F97316",
         initialer: "MK",

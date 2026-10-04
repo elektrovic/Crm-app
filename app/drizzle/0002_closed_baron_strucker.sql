@@ -1,0 +1,1 @@
+ALTER TABLE "vedlegg" ADD COLUMN "tripletex_forsok" integer DEFAULT 0 NOT NULL;

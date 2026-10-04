@@ -31,11 +31,10 @@ export default async function AdminJobb({ params }: { params: Promise<{ id: stri
         ‹ Tilbake til uka
       </Link>
 
-      <Jobbkort jobb={jobb} kanRedigere />
+      <Jobbkort jobb={jobb} kanRedigere kanTaBilde />
 
       <Planlegging
         tildelingId={jobb.tildelingId}
-        prosjektId={jobb.prosjektId}
         ledigeMangler={ledige}
         fraKl={jobb.fraKl}
         tilKl={jobb.tilKl}

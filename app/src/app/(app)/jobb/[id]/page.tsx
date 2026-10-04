@@ -19,7 +19,7 @@ export default async function MinJobb({ params }: { params: Promise<{ id: string
       <Link href="/kalender" style={{ fontSize: 13, color: "var(--bla)", textDecoration: "none" }}>
         ‹ Min uke
       </Link>
-      <Jobbkort jobb={jobb} kanRedigere={false} />
+      <Jobbkort jobb={jobb} kanRedigere={false} kanTaBilde />
     </>
   );
 }

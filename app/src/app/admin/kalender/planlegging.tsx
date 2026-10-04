@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Feilmelding, Felt, feltstil, knappstil, useHandling } from "@/components/crm-handling";
 import { Etikett, Kort } from "@/components/ui";
 import type { Manglerlinje } from "@/lib/data/kalender";
+import { Bildeopplasting } from "@/components/bildeopplasting";
 
 const sekundar = {
   ...knappstil,
@@ -21,14 +22,12 @@ const sekundar = {
  */
 export function Planlegging({
   tildelingId,
-  prosjektId,
   ledigeMangler,
   fraKl,
   tilKl,
   notat,
 }: {
   tildelingId: string;
-  prosjektId: string;
   /** Mangler som ikke alt står på pakkelista. */
   ledigeMangler: Manglerlinje[];
   fraKl: string | null;
@@ -39,8 +38,6 @@ export function Planlegging({
   const [valgte, setValgte] = useState<string[]>([]);
   const [frie, setFrie] = useState<{ tekst: string; antall: string }[]>([]);
   const [utkast, setUtkast] = useState("");
-  const [bildefeil, setBildefeil] = useState<string | null>(null);
-  const [laster, setLaster] = useState(false);
 
   function vipp(id: string) {
     setValgte((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
@@ -57,49 +54,6 @@ export function Planlegging({
     if (ok) {
       setValgte([]);
       setFrie([]);
-    }
-  }
-
-  /**
-   * Bildet krympes i nettleseren før det sendes.
-   *
-   * Et telefonbilde er gjerne 4 MB. Taket på serveren er 1,5 MB, og en
-   * database er uansett ikke et bildearkiv. 1600 px er rikelig til å se
-   * hvilken kurs som er merket feil.
-   */
-  async function lastOppBilde(fil: File) {
-    setBildefeil(null);
-    setLaster(true);
-    try {
-      const bitmap = await createImageBitmap(fil);
-      const skala = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
-      const lerret = document.createElement("canvas");
-      lerret.width = Math.round(bitmap.width * skala);
-      lerret.height = Math.round(bitmap.height * skala);
-      lerret.getContext("2d")?.drawImage(bitmap, 0, 0, lerret.width, lerret.height);
-
-      const dataUrl = lerret.toDataURL("image/jpeg", 0.82);
-      const base64 = dataUrl.split(",")[1];
-      if (!base64) {
-        setBildefeil("Fikk ikke lest bildet.");
-        return;
-      }
-
-      const svar = await fetch("/api/kalender/bilde", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ prosjektId, mimetype: "image/jpeg", base64 }),
-      });
-      if (!svar.ok) {
-        const data = await svar.json().catch(() => null);
-        setBildefeil(data?.feil ?? "Opplastingen gikk ikke gjennom.");
-        return;
-      }
-      window.location.reload();
-    } catch {
-      setBildefeil("Fikk ikke lest bildet. Prøv et vanlig JPEG eller PNG.");
-    } finally {
-      setLaster(false);
     }
   }
 
@@ -196,27 +150,12 @@ export function Planlegging({
             <Feilmelding tekst={feil} />
           </div>
 
-          {/* Bilde */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700 }}>Legg på et bilde</div>
-            <p style={{ margin: 0, fontSize: 12.5, color: "var(--dempet)" }}>
-              Skisse, bilde av tavla, utsnitt av en tegning. Krympes før sending.
-            </p>
-            <input
-              type="file"
-              accept="image/*"
-              disabled={laster}
-              onChange={(e) => {
-                const fil = e.currentTarget.files?.[0];
-                if (fil) void lastOppBilde(fil);
-              }}
-              style={{ fontSize: 12.5 }}
-            />
-            {laster && (
-              <span style={{ fontSize: 12, color: "var(--dempet)" }}>Laster opp…</span>
-            )}
-            <Feilmelding tekst={bildefeil} />
-          </div>
+          <Bildeopplasting
+            tildelingId={tildelingId}
+            slag="planlegging"
+            merke="Legg på et bilde"
+            hjelpetekst="Skisse, bilde av tavla, utsnitt av en tegning. Krympes før sending, og følger med til Tripletex ved neste synk."
+          />
 
           {/* Tid og beskjed */}
           <form

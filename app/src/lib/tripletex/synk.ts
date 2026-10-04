@@ -18,12 +18,14 @@ import { aktiviteter, ansatte, prosjekter, type Avdeling } from "@/db/schema";
 import { geokod, GeokodingFeil } from "@/lib/geo/kartverket";
 import { ryddGamleVedlegg, type Oppryddingsresultat } from "@/lib/vedlegg/opprydding";
 import { tripletex } from "./client";
+import { lastOppVentendeVedlegg, type Koresultat } from "./vedleggsko";
 
 export type Synkresultat = {
   prosjekter: { nye: number; oppdatert: number; deaktivert: number };
   aktiviteter: { nye: number; oppdatert: number };
   ansatte: { koblet: number; ukjente: string[] };
   geokoding: { treff: number; bom: number; gjenstaar: number };
+  vedleggsko: Koresultat;
   vedleggsopprydding: Oppryddingsresultat;
 };
 
@@ -293,6 +295,10 @@ export async function synkAlt(tenantId: string): Promise<Synkresultat> {
     ansatte: await synkAnsatte(tenantId),
     // Kjøres til slutt, så nye prosjekter fra denne runden får koordinater.
     geokoding: await geokodProsjekter(tenantId),
+    // Sender bilder som ligger igjen hos oss. Må skje FØR oppryddingen:
+    // den sletter bare lokale kopier Tripletex har bekreftet, så et bilde
+    // som nettopp gikk opp kan ryddes i samme runde.
+    vedleggsko: await lastOppVentendeVedlegg(tenantId),
     // Rydder bort lokale bildekopier Tripletex har bekreftet at de har.
     vedleggsopprydding: await ryddGamleVedlegg(tenantId),
   };

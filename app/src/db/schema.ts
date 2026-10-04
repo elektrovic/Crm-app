@@ -343,6 +343,15 @@ export const vedlegg = pgTable(
      */
     tripletexLastetOpp: timestamp("tripletex_lastet_opp", { withTimezone: true }),
     tripletexFeilmelding: text("tripletex_feilmelding"),
+    /**
+     * Antall forsøk på å få fila opp til Tripletex.
+     *
+     * Uten denne ville en fil Tripletex aldri godtar — feil format, slettet
+     * prosjekt — blitt prøvd på nytt hver time for alltid. Etter et tak gir
+     * synken opp og lar den stå med feilmeldingen sin, så et menneske kan se
+     * på den i stedet for at den forsvinner i loggstøy.
+     */
+    tripletexForsok: integer("tripletex_forsok").notNull().default(0),
 
     /**
      * Når vår kopi av fila ble ryddet bort.

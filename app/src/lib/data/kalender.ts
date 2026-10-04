@@ -243,6 +243,10 @@ export type Bilde = {
   mimetype: string;
   /** Falsk når bytene er ryddet bort lokalt, men raden står igjen. */
   tilgjengelig: boolean;
+  /** Når Tripletex bekreftet at de har fila. Null betyr «ikke sendt ennå». */
+  iTripletex: Date | null;
+  /** Satt når synken ga opp. Da trenger den et menneske. */
+  feilmelding: string | null;
 };
 
 export type Jobbkort = Kalenderjobb & {
@@ -267,6 +271,8 @@ async function hentBilder(tenantId: string, prosjektId: string): Promise<Bilde[]
       mimetype: vedlegg.mimetype,
       data: vedlegg.data,
       opprettet: vedlegg.opprettet,
+      iTripletex: vedlegg.tripletexLastetOpp,
+      feilmelding: vedlegg.tripletexFeilmelding,
     })
     .from(vedlegg)
     .where(and(eq(vedlegg.tenantId, tenantId), eq(vedlegg.prosjektId, prosjektId)));
@@ -279,6 +285,8 @@ async function hentBilder(tenantId: string, prosjektId: string): Promise<Bilde[]
       slag: r.slag,
       mimetype: r.mimetype,
       tilgjengelig: r.data !== null,
+      iTripletex: r.iTripletex,
+      feilmelding: r.feilmelding,
     }));
 }
 
