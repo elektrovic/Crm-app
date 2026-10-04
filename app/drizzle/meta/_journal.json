@@ -43,6 +43,20 @@
       "when": 1791120506064,
       "tag": "0005_minor_ser_duncan",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791120770185,
+      "tag": "0006_mushy_bloodscream",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791120775257,
+      "tag": "0007_wide_dreaming_celestial",
+      "breakpoints": true
     }
   ]
 }

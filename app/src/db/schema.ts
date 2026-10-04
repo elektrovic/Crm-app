@@ -1025,10 +1025,10 @@ export const synkkjoringer = pgTable(
  * i timen og kobler dem til kunden, så en telefonsamtale havner i
  * tidslinja ved siden av henvendelsen og prosjektet den handlet om.
  *
- * `transkripsjon` står tom med mindre POCKET_AI_LAGRE_TRANSKRIPSJON er satt
- * til «1». Et transkribert kundeopptak er personopplysninger, og det er
- * forskjell på å vise et sammendrag i en tidslinje og på å bli et arkiv
- * for hva kunder har sagt. Standarden er det minste av de to.
+ * Vi lagrer sammendraget, tidspunktet og oppgavene — ikke selve ordene.
+ * Et transkribert kundeopptak er personopplysninger, og det er forskjell
+ * på å vise et sammendrag i en tidslinje og på å bli et arkiv over hva
+ * kunder har sagt. Teksten blir værende hos Pocket, der den uansett er.
  */
 export const samtaler = pgTable(
   "samtaler",
@@ -1047,7 +1047,18 @@ export const samtaler = pgTable(
     sprak: text("sprak"),
 
     sammendrag: text("sammendrag"),
-    transkripsjon: text("transkripsjon"),
+
+    /**
+     * Oppgavene Pocket fant i samtalen, slik de kom.
+     *
+     * De blir IKKE automatisk til oppfølginger. Oppfølgingslista er den ene
+     * lista som må kunne stoles på, og en AI som fyller den med gjetninger
+     * ødelegger nettopp det. De ligger her som forslag, og et trykk gjør
+     * dem til en ekte oppfølging med frist.
+     */
+    oppgaver: jsonb("oppgaver").$type<string[]>(),
+    /** Forslag som er tatt i bruk, så de ikke tilbys igjen. */
+    oppgaverBrukt: jsonb("oppgaver_brukt").$type<string[]>(),
 
     /** Den ansatte som tok opp, koblet på e-post. */
     ansattId: uuid("ansatt_id").references(() => ansatte.id),

@@ -1,0 +1,1 @@
+ALTER TABLE "samtaler" DROP COLUMN "transkripsjon";
