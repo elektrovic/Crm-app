@@ -1,6 +1,7 @@
 import { krevRolle } from "@/lib/tilgang";
 import { tellRader } from "@/lib/data/omfang";
 import { Kommer } from "../kommer";
+import { SynkNa } from "./synk-na";
 
 export const metadata = { title: "Prosjekter · Montørappen" };
 
@@ -9,7 +10,9 @@ export default async function Prosjekter() {
   const n = await tellRader(okt, ["prosjekter", "mangler", "adkomst", "vedlegg"]);
 
   return (
-    <Kommer
+    <>
+      <SynkNa />
+      <Kommer
       tittel="Prosjekter"
       under="Alle jobber på tvers av avdelingene, med status og framdrift"
       hensikt={[
@@ -24,6 +27,7 @@ export default async function Prosjekter() {
         { hva: "adkomstnotater", antall: n.adkomst },
         { hva: "vedlegg", antall: n.vedlegg },
       ]}
-    />
+      />
+    </>
   );
 }

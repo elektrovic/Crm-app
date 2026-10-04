@@ -18,6 +18,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { likeHemmeligheter } from "@/lib/krypto";
+import { TripletexFeil } from "@/lib/tripletex/client";
 import { synkAlt } from "@/lib/tripletex/synk";
 
 /**
@@ -37,10 +38,18 @@ export async function POST(request: Request) {
     return NextResponse.json(resultat);
   } catch (feil) {
     console.error("Synk mot Tripletex feilet", feil);
-    return NextResponse.json(
-      { feil: "Synken feilet. Se serverloggen for detaljer." },
-      { status: 502 },
-    );
+
+    // Meldinga sendes med tilbake. Endepunktet krever allerede leder eller
+    // synknøkkel, så det er ingen fremmed som leser den — og «se
+    // serverloggen» er ubrukelig for den som ikke når serverloggen.
+    // Tripletex' eget svar er ofte det eneste som sier hva som er galt.
+    const melding = feil instanceof Error ? feil.message : "Ukjent feil.";
+    const detaljer =
+      feil instanceof TripletexFeil && typeof feil.detaljer === "string"
+        ? feil.detaljer.slice(0, 500)
+        : undefined;
+
+    return NextResponse.json({ feil: melding, fraTripletex: detaljer }, { status: 502 });
   }
 }
 
