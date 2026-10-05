@@ -108,8 +108,25 @@ export default async function LoggInn({
               ? "Kontoen din er ikke satt opp i Montørappen ennå. Si fra til kontoret, så legger de deg inn."
               : error === "CredentialsSignin"
                 ? "E-posten eller passordet stemmer ikke."
-                : "Innloggingen gikk ikke gjennom. Prøv en gang til."}
+                : error === "Configuration"
+                  ? "Oppsettet mangler noe — appen klarer ikke å logge noen inn. Sjekk at AUTH_SECRET står i app/.env."
+                  : error === "MissingCSRF"
+                    ? "Skjemaet var for gammelt. Last siden på nytt og prøv igjen."
+                    : "Innloggingen gikk ikke gjennom. Prøv en gang til."}
           </p>
+          {error && error !== "CredentialsSignin" && (
+            <p
+              style={{
+                margin: "6px 0 0",
+                fontSize: 11,
+                fontFamily: "var(--font-mono)",
+                color: "var(--rod-tekst)",
+                opacity: 0.75,
+              }}
+            >
+              {error}
+            </p>
+          )}
         </Kort>
       )}
 
