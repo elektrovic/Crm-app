@@ -15,7 +15,8 @@
     "db:seed": "node --env-file-if-exists=.env --import tsx src/db/seed.ts",
     "test": "node --conditions=react-server --import tsx --test \"src/**/*.test.ts\"",
     "db:tom": "node --env-file-if-exists=.env --import tsx src/db/tom.ts",
-    "db:forstebruker": "node --env-file-if-exists=.env --import tsx src/db/forstebruker.ts"
+    "db:forstebruker": "node --env-file-if-exists=.env --import tsx src/db/forstebruker.ts",
+    "db:passord": "node --env-file-if-exists=.env --import tsx src/db/settpassord.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",
