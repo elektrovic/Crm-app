@@ -2,6 +2,7 @@ import Link from "next/link";
 import { krevOkt } from "@/lib/tilgang";
 import { dagensSpenn, hentDagensOppdrag } from "@/lib/data/dagen";
 import { Etikett, IkonFlis, Kort, Pille, Sidetittel, Tomt } from "@/components/ui";
+import { Loggut } from "@/components/loggut";
 
 export const metadata = { title: "Hjem · Montørappen" };
 
@@ -161,6 +162,35 @@ export default async function Hjem() {
           </div>
         </Kort>
       )}
+
+      {/* Nederst, ikke i menyen. Utlogging er noe man gjør sjelden og
+          aldri ved et uhell — særlig ikke med hansker på. */}
+      <div
+        style={{
+          marginTop: 6,
+          paddingTop: 14,
+          borderTop: "1px solid var(--linje)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+        }}
+      >
+        <span style={{ fontSize: 12, color: "var(--svak)" }}>
+          Innlogget som {okt.epost}
+        </span>
+        <Loggut
+          stil={{
+            padding: "7px 12px",
+            borderRadius: 9,
+            border: "1px solid var(--linje)",
+            background: "var(--kort)",
+            color: "var(--tekst-2)",
+            fontSize: 12.5,
+            fontWeight: 600,
+          }}
+        />
+      </div>
     </>
   );
 }

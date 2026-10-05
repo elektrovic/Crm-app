@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { IkonFlis } from "@/components/ui";
+import { Loggut } from "@/components/loggut";
 import type { Rolle } from "@/db/schema";
 
 /**
@@ -205,6 +206,7 @@ export function Sidemeny({
           </button>
 
           {apen && (
+            <>
             <Link
               href="/hjem"
               style={{
@@ -221,6 +223,21 @@ export function Sidemeny({
             >
               Til montørappen
             </Link>
+            <Loggut
+              stil={{
+                display: "block",
+                width: "100%",
+                marginTop: 6,
+                padding: "8px 10px",
+                borderRadius: 9,
+                background: "rgba(255,255,255,.07)",
+                color: "#fff",
+                fontSize: 12.5,
+                fontWeight: 600,
+                textAlign: "left",
+              }}
+            />
+            </>
           )}
         </div>
       </aside>
