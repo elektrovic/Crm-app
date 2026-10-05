@@ -143,7 +143,21 @@ fi
 
 # ------------------------------------------------------- migrering
 si "Oppdaterer tabellene …"
-(cd "$app" && npm run db:migrate)
+#
+# push, ikke migrate.
+#
+# Migreringene fører journal over hva som er kjørt. Er den lokale basen
+# kommet ut av takt med skjemaet — fordi du byttet gren, eller fordi en
+# migrering stoppet halvveis — melder `db:migrate` «Databasen er
+# oppdatert» og gjør ingenting, fordi journalen sier at den alt er kjørt.
+# Appen møter da en tabell uten kolonnen den spør etter, og feilen som
+# kommer ut er «CallbackRouteError» ved innlogging. Det tok en kveld å
+# finne.
+#
+# `push` sammenligner skjemaet med basen og retter forskjellen, uansett
+# hva journalen sier. Det er riktig verktøy lokalt. Produksjon bruker
+# fortsatt migreringene — der er journalen poenget.
+(cd "$app" && npx drizzle-kit push --force)
 
 # ------------------------------------------------------ første bruker
 #

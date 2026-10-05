@@ -130,9 +130,24 @@ const passordProvider = Credentials({
     const passord = typeof data?.passord === "string" ? data.passord : "";
     if (!epost || !passord) return null;
 
-    const rad = await db.query.ansatte.findFirst({
-      where: and(eq(ansatte.epost, epost), eq(ansatte.tenantId, TENANT)),
-    });
+    let rad;
+    try {
+      rad = await db.query.ansatte.findFirst({
+        where: and(eq(ansatte.epost, epost), eq(ansatte.tenantId, TENANT)),
+      });
+    } catch (feil) {
+      // En feil herfra ble til «CallbackRouteError» ute i grensesnittet —
+      // en kode som ikke sier noe om hva som er galt, med førti linjer
+      // stakksporing i terminalen. Som regel er det databasen: tabellen
+      // er ikke migrert, eller den svarer ikke.
+      console.error(
+        "\n[Montørappen] Innlogging feilet mot databasen:",
+        feil instanceof Error ? feil.message : feil,
+        "\n  Står det noe om en kolonne som ikke finnes, mangler en migrering." +
+          "\n  Kjør:  npm run db:migrate\n",
+      );
+      throw feil;
+    }
 
     // Finnes ikke brukeren, regner vi likevel ut en hash. Det koster de
     // samme millisekundene, og da lekker ikke svartiden hvem som finnes.
@@ -143,10 +158,20 @@ const passordProvider = Credentials({
 
     if (!(await sjekkPassord(passord, rad.passordHash))) return null;
 
+    // Bokføring av siste innlogging skal aldri hindre selve innloggingen.
+    // Feiler den — for eksempel fordi kolonnen mangler i en base som ikke
+    // er migrert — er riktig svar å slippe folk inn og notere det, ikke å
+    // stenge døra.
     await db
       .update(ansatte)
       .set({ sisteInnlogging: new Date() })
-      .where(eq(ansatte.id, rad.id));
+      .where(eq(ansatte.id, rad.id))
+      .catch((feil) => {
+        console.warn(
+          "[Montørappen] Klarte ikke å notere siste innlogging:",
+          feil instanceof Error ? feil.message : feil,
+        );
+      });
 
     return {
       id: rad.id,
