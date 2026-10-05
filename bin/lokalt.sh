@@ -125,8 +125,6 @@ if [ ! -f "$app/.env" ]; then
     echo "MILJO=lokal"
     echo "DATABASE_URL=$BASE_URL"
     echo "AUTH_URL=http://localhost:3000"
-    echo "DEMO_INNLOGGING=1"
-    echo "DEMO_PASSORD=lokal-test-passord"
     echo "AUTH_SECRET=$(openssl rand -base64 32)"
     echo "KRYPTERINGSNOKKEL=$(openssl rand -base64 32)"
   } >> "$app/.env"
@@ -158,10 +156,23 @@ si "Oppdaterer tabellene …"
 #
 # Vil du likevel ha testdata å klikke rundt i:  npm run db:demodata
 # Vil du tømme alt igjen:                       npm run db:tom
-antall="$(psql "$BASE_URL" -tAc "select count(*) from ansatte" 2>/dev/null | tr -d ' ' || true)"
-[ -n "$antall" ] || antall=0
-if [ "$antall" = "0" ]; then
-  si "Basen er tom — lager din administrator …"
+# Vi teller brukere som FAKTISK kan logge inn, ikke rader i tabellen.
+# Gamle demodata ga rader uten passord, og da hoppet dette over — med en
+# base full av ansatte og ingen vei inn.
+medPassord="$(psql "$BASE_URL" -tAc \
+  "select count(*) from ansatte where passord_hash is not null and aktiv" 2>/dev/null | tr -d ' ' || true)"
+[ -n "$medPassord" ] || medPassord=0
+
+if [ "$medPassord" = "0" ]; then
+  antall="$(psql "$BASE_URL" -tAc "select count(*) from ansatte" 2>/dev/null | tr -d ' ' || true)"
+  [ -n "$antall" ] || antall=0
+
+  if [ "$antall" != "0" ]; then
+    si "Fant $antall gamle ansatte uten passord — rydder dem bort …"
+    (cd "$app" && npm run --silent db:tom)
+  fi
+
+  si "Lager din administrator …"
   (cd "$app" && npm run --silent db:forstebruker -- "${MONTOR_NAVN:-Victor Halland}" "${MONTOR_EPOST:-victor@hallandgroup.no}")
 fi
 
